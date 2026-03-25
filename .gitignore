@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# 虛擬環境
+venv/
+.venv/
+env/
+.env
+
+# 影音資料（通常過大不適合 commit）
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.wav
+*.mp3
+
+# 模型快取（Whisper / SBERT 下載的模型）
+.cache/
+models/
+*.pt
+*.bin
+*.safetensors
+
+# 標註與輸出結果
+annotations/
+output/
+ground_truth.json
+transcript.json
+
+# 系統與編輯器
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# 環境變數
+.env
+.env.local
+
+# 測試覆蓋率
+.coverage
+htmlcov/
