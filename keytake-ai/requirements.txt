@@ -1,0 +1,32 @@
+# KeyTake AI - 多模態教學影片自動摘要系統
+# 語音辨識
+openai-whisper
+
+# 語意分析
+sentence-transformers
+scikit-learn
+numpy
+
+# 視覺處理
+mediapipe
+opencv-python
+Pillow
+
+# 影音處理
+ffmpeg-python
+
+# 超解析度 (SRGAN / 延伸功能)
+torch
+torchvision
+
+# OCR
+pytesseract
+
+# 後端平台
+fastapi
+uvicorn
+celery
+redis
+
+# 評估指標
+bert-score
