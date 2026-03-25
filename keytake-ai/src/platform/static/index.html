@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KeyTake AI — 自動化教學精華擷取平台</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f6fa;
+      color: #2d3436;
+    }
+
+    header {
+      background: #2d3436;
+      color: #fff;
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header h1 { font-size: 1.1rem; font-weight: 600; }
+    header span { font-size: 0.8rem; color: #b2bec3; }
+
+    .container {
+      max-width: 1100px;
+      margin: 32px auto;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 24px;
+    }
+
+    /* ── 左側：影片區 ── */
+    .video-panel {
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+
+    .video-wrapper {
+      background: #000;
+      aspect-ratio: 16/9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .video-wrapper video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .video-placeholder {
+      color: #636e72;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+    .video-placeholder svg { margin-bottom: 8px; opacity: .4; }
+
+    /* 時間軸色條（對應計畫書圖 5） */
+    .timeline {
+      height: 10px;
+      background: #dfe6e9;
+      position: relative;
+      margin: 0;
+    }
+    .timeline-segment {
+      position: absolute;
+      height: 100%;
+      border-radius: 2px;
+      opacity: .85;
+    }
+    .seg-semantic  { background: #00b894; }
+    .seg-visual    { background: #e17055; }
+    .seg-combined  { background: #6c5ce7; }
+
+    .timeline-legend {
+      display: flex;
+      gap: 16px;
+      padding: 8px 16px;
+      font-size: 0.72rem;
+      color: #636e72;
+    }
+    .legend-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 4px;
+    }
+
+    /* 上傳區 */
+    .upload-area {
+      border: 2px dashed #b2bec3;
+      border-radius: 8px;
+      padding: 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      margin: 16px;
+    }
+    .upload-area:hover, .upload-area.drag-over {
+      border-color: #6c5ce7;
+      background: #f0eeff;
+    }
+    .upload-area input { display: none; }
+    .upload-area p { font-size: 0.85rem; color: #636e72; margin-top: 8px; }
+
+    .btn {
+      display: inline-block;
+      padding: 9px 22px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn-primary { background: #6c5ce7; color: #fff; }
+    .btn-outline { background: transparent; border: 1.5px solid #6c5ce7; color: #6c5ce7; }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* 進度條 */
+    .progress-wrap { padding: 0 16px 16px; display: none; }
+    .progress-bar {
+      height: 6px;
+      background: #dfe6e9;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #6c5ce7;
+      width: 0%;
+      transition: width .4s;
+      border-radius: 3px;
+    }
+    .progress-label { font-size: 0.78rem; color: #636e72; margin-top: 6px; }
+
+    /* ── 右側：索引面板 ── */
+    .index-panel {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      display: flex;
+      flex-direction: column;
+    }
+    .index-header {
+      padding: 16px 18px 12px;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .index-header h2 { font-size: 0.9rem; font-weight: 600; }
+    .index-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+      max-height: 420px;
+    }
+    .index-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 18px;
+      cursor: pointer;
+      transition: background .15s;
+      border-left: 3px solid transparent;
+    }
+    .index-item:hover { background: #f8f9fa; }
+    .index-item.active {
+      background: #f0eeff;
+      border-left-color: #6c5ce7;
+    }
+    .index-time {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #6c5ce7;
+      min-width: 44px;
+    }
+    .index-label { font-size: 0.82rem; color: #2d3436; }
+
+    .index-footer {
+      padding: 14px 18px;
+      border-top: 1px solid #f0f0f0;
+      display: flex;
+      gap: 8px;
+    }
+
+    /* 統計卡片 */
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 16px;
+    }
+    .stat-card {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+    .stat-value { font-size: 1.4rem; font-weight: 700; color: #6c5ce7; }
+    .stat-label { font-size: 0.72rem; color: #636e72; margin-top: 2px; }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #b2bec3;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a29bfe" stroke-width="2">
+    <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+  </svg>
+  <h1>KeyTake AI</h1>
+  <span>自動化教學精華擷取平台</span>
+</header>
+
+<div class="container">
+
+  <!-- 左側 -->
+  <div>
+    <div class="video-panel">
+      <div class="video-wrapper" id="videoWrapper">
+        <div class="video-placeholder" id="videoPlaceholder">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+          </svg>
+          <p>上傳影片後顯示摘要播放器</p>
+        </div>
+        <video id="videoPlayer" style="display:none" controls></video>
+      </div>
+
+      <!-- 時間軸 -->
+      <div class="timeline" id="timeline"></div>
+      <div class="timeline-legend">
+        <span><span class="legend-dot" style="background:#00b894"></span>語意重點</span>
+        <span><span class="legend-dot" style="background:#e17055"></span>板書書寫</span>
+        <span><span class="legend-dot" style="background:#6c5ce7"></span>雙模態對齊</span>
+      </div>
+
+      <!-- 上傳區 -->
+      <div class="upload-area" id="uploadArea">
+        <input type="file" id="fileInput" accept="video/*" />
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#b2bec3" stroke-width="1.5">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <p>點擊或拖曳影片至此處上傳</p>
+        <p style="margin-top:4px;font-size:.72rem">支援 MP4、AVI、MOV、MKV</p>
+      </div>
+
+      <!-- 進度條 -->
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-label" id="progressLabel">處理中...</div>
+      </div>
+    </div>
+
+    <!-- 統計卡片 -->
+    <div class="stats" id="statsArea" style="display:none">
+      <div class="stat-card">
+        <div class="stat-value" id="statOriginal">—</div>
+        <div class="stat-label">原始時長（分鐘）</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statSummary">—</div>
+        <div class="stat-label">摘要時長（分鐘）</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statSaving">—</div>
+        <div class="stat-label">時間節省率</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statSegments">—</div>
+        <div class="stat-label">精華片段數</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右側索引面板 -->
+  <div class="index-panel">
+    <div class="index-header">
+      <h2>精華片段索引</h2>
+      <span id="segCount" style="font-size:.78rem;color:#b2bec3">—</span>
+    </div>
+    <div class="index-list" id="indexList">
+      <div class="empty-state">上傳影片後<br>自動生成索引</div>
+    </div>
+    <div class="index-footer">
+      <button class="btn btn-primary" id="btnDownload" disabled>下載濃縮影片</button>
+      <button class="btn btn-outline" id="btnExport" disabled>匯出索引</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const API = "";  // 同源，留空即可
+
+  let taskId = null;
+  let pollTimer = null;
+  let indexData = [];
+
+  // ── 上傳區互動 ──────────────────────────────────────────
+  const uploadArea = document.getElementById("uploadArea");
+  const fileInput  = document.getElementById("fileInput");
+
+  uploadArea.addEventListener("click", () => fileInput.click());
+  uploadArea.addEventListener("dragover", e => { e.preventDefault(); uploadArea.classList.add("drag-over"); });
+  uploadArea.addEventListener("dragleave", () => uploadArea.classList.remove("drag-over"));
+  uploadArea.addEventListener("drop", e => {
+    e.preventDefault();
+    uploadArea.classList.remove("drag-over");
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener("change", () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+
+  function handleFile(file) {
+    // 本地預覽
+    const url = URL.createObjectURL(file);
+    const player = document.getElementById("videoPlayer");
+    player.src = url;
+    player.style.display = "block";
+    document.getElementById("videoPlaceholder").style.display = "none";
+
+    // 上傳至後端
+    uploadVideo(file);
+  }
+
+  async function uploadVideo(file) {
+    setProgress(0, "上傳中...");
+    const form = new FormData();
+    form.append("file", file);
+
+    try {
+      const res = await fetch(`${API}/upload`, { method: "POST", body: form });
+      const data = await res.json();
+      taskId = data.task_id;
+      pollStatus();
+    } catch (e) {
+      setProgress(0, `上傳失敗：${e.message}`);
+    }
+  }
+
+  // ── 輪詢任務狀態 ────────────────────────────────────────
+  function pollStatus() {
+    clearInterval(pollTimer);
+    pollTimer = setInterval(async () => {
+      try {
+        const res = await fetch(`${API}/status/${taskId}`);
+        const data = await res.json();
+
+        if (data.status === "processing") {
+          setProgress(50, "AI 分析中（語意 + 視覺）...");
+        } else if (data.status === "done") {
+          clearInterval(pollTimer);
+          setProgress(100, "完成！");
+          renderResult(data.result);
+        } else if (data.status === "error") {
+          clearInterval(pollTimer);
+          setProgress(0, `錯誤：${data.error}`);
+        }
+      } catch (e) {
+        clearInterval(pollTimer);
+      }
+    }, 2000);
+  }
+
+  // ── 渲染結果 ────────────────────────────────────────────
+  function renderResult(result) {
+    indexData = result.segments || [];
+    const total = result.original_duration || 1;
+    const summary = result.summary_duration || 0;
+
+    // 統計卡片
+    document.getElementById("statsArea").style.display = "grid";
+    document.getElementById("statOriginal").textContent = (total / 60).toFixed(1);
+    document.getElementById("statSummary").textContent  = (summary / 60).toFixed(1);
+    document.getElementById("statSaving").textContent   = ((1 - summary / total) * 100).toFixed(0) + "%";
+    document.getElementById("statSegments").textContent = indexData.length;
+    document.getElementById("segCount").textContent     = `${indexData.length} 個片段`;
+
+    // 時間軸
+    const timeline = document.getElementById("timeline");
+    timeline.innerHTML = "";
+    indexData.forEach(seg => {
+      const div = document.createElement("div");
+      div.className = "timeline-segment seg-combined";
+      div.style.left  = (seg.start_sec / total * 100) + "%";
+      div.style.width = ((seg.end_sec - seg.start_sec) / total * 100) + "%";
+      div.title = seg.label;
+      timeline.appendChild(div);
+    });
+
+    // 索引列表
+    const list = document.getElementById("indexList");
+    list.innerHTML = "";
+    indexData.forEach((seg, i) => {
+      const item = document.createElement("div");
+      item.className = "index-item";
+      item.innerHTML = `
+        <span class="index-time">${seg.timestamp}</span>
+        <span class="index-label">${seg.label}</span>
+      `;
+      item.addEventListener("click", () => {
+        document.querySelectorAll(".index-item").forEach(el => el.classList.remove("active"));
+        item.classList.add("active");
+        const player = document.getElementById("videoPlayer");
+        player.currentTime = seg.start_sec;
+        player.play();
+      });
+      list.appendChild(item);
+    });
+
+    // 啟用按鈕
+    document.getElementById("btnDownload").disabled = false;
+    document.getElementById("btnExport").disabled   = false;
+  }
+
+  // ── 下載 / 匯出 ─────────────────────────────────────────
+  document.getElementById("btnDownload").addEventListener("click", () => {
+    if (taskId) window.open(`${API}/download/${taskId}`, "_blank");
+  });
+
+  document.getElementById("btnExport").addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(indexData, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "keytake_index.json";
+    a.click();
+  });
+
+  // ── 工具函式 ────────────────────────────────────────────
+  function setProgress(pct, label) {
+    const wrap = document.getElementById("progressWrap");
+    wrap.style.display = "block";
+    document.getElementById("progressFill").style.width  = pct + "%";
+    document.getElementById("progressLabel").textContent = label;
+  }
+</script>
+</body>
+</html>
