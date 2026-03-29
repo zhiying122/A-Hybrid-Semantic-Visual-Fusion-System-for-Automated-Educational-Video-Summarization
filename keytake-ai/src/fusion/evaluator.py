@@ -35,7 +35,9 @@ def compute_false_alarm_rate(selected: list[dict], ground_truth: list[tuple[floa
         )
         if not is_gt:
             false_alarm_sec += seg["end"] - seg["start"]
-    return false_alarm_sec / total_duration if total_duration > 0 else 0.0
+    if total_duration <= 0:
+        return 0.0
+    return min(1.0, max(0.0, false_alarm_sec / total_duration))
 
 
 def compute_bert_score(summary_texts: list[str], reference_texts: list[str]) -> float:

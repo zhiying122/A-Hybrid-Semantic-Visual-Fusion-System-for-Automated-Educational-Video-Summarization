@@ -50,3 +50,12 @@ Thumbs.db
 # 測試覆蓋率
 .coverage
 htmlcov/
+
+# Hypothesis 測試快取
+.hypothesis/
+
+# pytest 快取
+.pytest_cache/
+
+# Kiro IDE
+.kiro/

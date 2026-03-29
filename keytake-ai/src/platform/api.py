@@ -14,7 +14,12 @@
 """
 
 import os
+import sys
 import uuid
+
+# 確保從 keytake-ai/ 根目錄可以 import main 與其他模組
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
+
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
