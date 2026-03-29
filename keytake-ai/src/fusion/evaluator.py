@@ -6,7 +6,6 @@
 3. 時間節省率 (Time Saving Rate)
 """
 
-from bert_score import score as bert_score_fn
 from config import TARGET_RECALL, TARGET_BERT_SCORE, TARGET_TIME_SAVING_RATE
 
 
@@ -42,6 +41,7 @@ def compute_false_alarm_rate(selected: list[dict], ground_truth: list[tuple[floa
 
 def compute_bert_score(summary_texts: list[str], reference_texts: list[str]) -> float:
     """語意相似度：使用 BERTScore 計算摘要與原始重點的向量相似度"""
+    from bert_score import score as bert_score_fn
     _, _, f1 = bert_score_fn(summary_texts, reference_texts, lang="zh", verbose=False)
     return float(f1.mean())
 

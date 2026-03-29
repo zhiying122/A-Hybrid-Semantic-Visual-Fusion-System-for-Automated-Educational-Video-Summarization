@@ -28,7 +28,14 @@ def main():
         print(f"找不到標註資料夾：{ann_dir}")
         sys.exit(1)
 
+    # 優先掃描根目錄，若無資料則嘗試 example/ 子資料夾
     seg_files = sorted(f for f in os.listdir(ann_dir) if f.startswith("segments_"))
+    if not seg_files:
+        example_dir = os.path.join(ann_dir, "example")
+        if os.path.exists(example_dir):
+            print(f"根目錄無資料，使用範例資料：{example_dir}")
+            ann_dir = example_dir
+            seg_files = sorted(f for f in os.listdir(ann_dir) if f.startswith("segments_"))
     all_videos = []
     for sf in seg_files:
         vid_id = sf.replace("segments_", "").replace(".json", "")

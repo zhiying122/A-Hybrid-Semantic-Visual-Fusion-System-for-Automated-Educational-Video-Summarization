@@ -37,14 +37,21 @@ def main():
     parser.add_argument("--step", type=float, default=0.1, help="搜尋步長")
     args = parser.parse_args()
 
-    # 掃描標註資料夾
+    # 掃描標註資料夾（支援 example/ 子資料夾）
     ann_dir = args.annotations
     if not os.path.exists(ann_dir):
         print(f"找不到標註資料夾：{ann_dir}")
         print("請先執行 tools/export_transcript.py 與 tools/annotator.py 產生標註資料")
         sys.exit(1)
 
+    # 優先掃描根目錄，若無資料則嘗試 example/ 子資料夾
     seg_files = sorted(f for f in os.listdir(ann_dir) if f.startswith("segments_"))
+    if not seg_files:
+        example_dir = os.path.join(ann_dir, "example")
+        if os.path.exists(example_dir):
+            print(f"根目錄無資料，使用範例資料：{example_dir}")
+            ann_dir = example_dir
+            seg_files = sorted(f for f in os.listdir(ann_dir) if f.startswith("segments_"))
     if not seg_files:
         print("找不到 segments_*.json 檔案，請確認標註資料夾內容")
         sys.exit(1)
