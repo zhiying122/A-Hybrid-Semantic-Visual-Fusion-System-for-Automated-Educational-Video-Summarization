@@ -49,6 +49,7 @@ Thumbs.db
 # 環境變數
 .env
 .env.local
+keytake-ai/.env
 
 # 測試覆蓋率
 .coverage
