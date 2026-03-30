@@ -16,9 +16,9 @@ if os.path.exists(_FFMPEG_PATH):
     os.environ["PATH"] = os.path.dirname(_FFMPEG_PATH) + os.pathsep + os.environ.get("PATH", "")
 
 
-def convert_to_mp4(input_path: str, output_path: str) -> str:
-    """將任意格式影片轉換為 MP4"""
-    ffmpeg.input(input_path).output(output_path).run(overwrite_output=True)
+def convert_to_mp4(input_path: str, output_path: str, fps: int = 30) -> str:
+    """將任意格式影片轉換為 MP4，強制固定幀率（避免 VBR 影片時間軸不吻合）"""
+    ffmpeg.input(input_path).output(output_path, r=fps).run(overwrite_output=True)
     return output_path
 
 

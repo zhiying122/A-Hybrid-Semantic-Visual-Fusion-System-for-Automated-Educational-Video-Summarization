@@ -203,6 +203,17 @@
       min-width: 44px;
     }
     .index-label { font-size: 0.82rem; color: #2d3436; }
+    .seg-badge {
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 10px;
+      color: #fff;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .badge-semantic  { background: #00b894; }
+    .badge-visual    { background: #e17055; }
+    .badge-combined  { background: #6c5ce7; }
 
     .index-footer {
       padding: 14px 18px;
@@ -427,9 +438,10 @@
     // 時間軸
     const timeline = document.getElementById("timeline");
     timeline.innerHTML = "";
+    const typeClassMap = { semantic: "seg-semantic", visual: "seg-visual", combined: "seg-combined" };
     indexData.forEach(seg => {
       const div = document.createElement("div");
-      div.className = "timeline-segment seg-combined";
+      div.className = "timeline-segment " + (typeClassMap[seg.type] || "seg-combined");
       div.style.left  = (seg.start_sec / total * 100) + "%";
       div.style.width = ((seg.end_sec - seg.start_sec) / total * 100) + "%";
       div.title = seg.label;
@@ -442,9 +454,12 @@
     indexData.forEach((seg, i) => {
       const item = document.createElement("div");
       item.className = "index-item";
+      const badgeClass = { semantic: "badge-semantic", visual: "badge-visual", combined: "badge-combined" }[seg.type] || "badge-combined";
+      const badgeLabel = { semantic: "語意", visual: "板書", combined: "雙模態" }[seg.type] || "雙模態";
       item.innerHTML = `
         <span class="index-time">${seg.timestamp}</span>
         <span class="index-label">${seg.label}</span>
+        <span class="seg-badge ${badgeClass}">${badgeLabel}</span>
       `;
       item.addEventListener("click", () => {
         document.querySelectorAll(".index-item").forEach(el => el.classList.remove("active"));
