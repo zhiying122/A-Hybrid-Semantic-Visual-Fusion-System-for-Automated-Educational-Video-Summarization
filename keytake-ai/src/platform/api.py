@@ -42,7 +42,10 @@ def index():
     """提供前端介面"""
     html_path = os.path.join(_static_dir, "index.html")
     if os.path.exists(html_path):
-        return FileResponse(html_path)
+        return FileResponse(
+            html_path,
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"}
+        )
     return {"message": "KeyTake AI API is running"}
 
 
