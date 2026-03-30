@@ -110,15 +110,19 @@ def semantic_sliding_window(
         if scores[i] >= FUSION_SCORE_THRESHOLD:
             start = segments[i]["start"]
             end = segments[i]["end"]
-            # 向後延伸直到滿足最小保留時間且遇到低分片段
             j = i + 1
+            # 向後延伸：滿足最小時長 且 遇到低分片段才停
             while j < len(segments):
-                end = segments[j]["end"]
-                duration = end - start
+                candidate_end = segments[j]["end"]
+                duration = candidate_end - start
                 if duration >= min_sec and scores[j] < FUSION_SCORE_THRESHOLD:
                     break
+                end = candidate_end
                 j += 1
-            selected.append({"start": start, "end": end})
+            selected.append({"start": start, "end": end,
+                              "s_text": segments[i].get("s_text", 0.0),
+                              "s_visual": segments[i].get("s_visual", 0.0),
+                              "text": segments[i].get("text", "")})
             i = j
         else:
             i += 1

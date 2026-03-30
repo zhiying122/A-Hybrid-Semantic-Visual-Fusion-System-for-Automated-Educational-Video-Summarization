@@ -10,6 +10,7 @@ SRGAN 超解析度模組（延伸功能）
 
 import cv2
 import numpy as np
+from config import SRGAN_SCALE
 
 
 def _try_load_realesrgan():
@@ -39,7 +40,7 @@ def _try_load_realesrgan():
 _upsampler = None
 
 
-def enhance_roi(roi: np.ndarray, scale: int = 4) -> np.ndarray:
+def enhance_roi(roi: np.ndarray, scale: int = SRGAN_SCALE) -> np.ndarray:
     """
     對 ROI 進行超解析度增強
     - 優先使用 Real-ESRGAN（需安裝 realesrgan 套件與權重檔）

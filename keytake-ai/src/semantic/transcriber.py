@@ -19,6 +19,7 @@ def transcribe(audio_path: str) -> list[dict]:
     segments = [
         {"start": seg["start"], "end": seg["end"], "text": seg["text"].strip()}
         for seg in result["segments"]
+        if seg["text"].strip()  # 過濾 Whisper 幻覺產生的空字串片段
     ]
     print(f"[Transcriber] 共轉錄 {len(segments)} 個片段")
     return segments

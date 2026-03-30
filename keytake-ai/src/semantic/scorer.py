@@ -41,12 +41,15 @@ class SemanticScorer:
         計算每個片段與提示語料庫的最大餘弦相似度
         捕捉「這邊很重要」等非關鍵詞但具語意重要性的語句
         """
-        texts = [seg["text"] for seg in segments]
-        embeddings = self.sbert.encode(texts, convert_to_tensor=True)
-        # 每個片段取與語料庫最高的相似度
-        cosine_scores = util.cos_sim(embeddings, self.corpus_embeddings)
-        max_scores = cosine_scores.max(dim=1).values.cpu().numpy()
-        return max_scores
+        scores = np.zeros(len(segments))
+        for i, seg in enumerate(segments):
+            text = seg.get("text", "").strip()
+            if not text:  # 空字串直接給 0，避免 SBERT 報錯
+                continue
+            embedding = self.sbert.encode([text], convert_to_tensor=True)
+            cosine = util.cos_sim(embedding, self.corpus_embeddings)
+            scores[i] = float(cosine.max().cpu())
+        return scores
 
     def score(self, segments: list[dict], alpha_tfidf: float = 0.5) -> list[dict]:
         """
