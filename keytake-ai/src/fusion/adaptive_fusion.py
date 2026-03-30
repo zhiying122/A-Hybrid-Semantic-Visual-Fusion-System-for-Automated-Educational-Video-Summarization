@@ -7,9 +7,21 @@
 對應計畫書 4.2 步驟四
 """
 
+import time
 import numpy as np
 from itertools import product
 from config import ALPHA, BETA, FUSION_SCORE_THRESHOLD, SLIDING_WINDOW_MIN_SEC
+
+# 全域進度回調（由 api.py 注入）
+_progress_callback = None
+
+def set_progress_callback(fn):
+    global _progress_callback
+    _progress_callback = fn
+
+def _report(step: int, total: int, message: str):
+    if _progress_callback:
+        _progress_callback(step, total, message)
 
 
 def fuse_scores(s_text: float, s_visual: float, alpha: float = ALPHA, beta: float = BETA) -> float:

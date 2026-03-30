@@ -127,19 +127,38 @@
     /* 進度條 */
     .progress-wrap { padding: 0 16px 16px; display: none; }
     .progress-bar {
-      height: 6px;
+      height: 8px;
       background: #dfe6e9;
-      border-radius: 3px;
+      border-radius: 4px;
       overflow: hidden;
     }
     .progress-fill {
       height: 100%;
-      background: #6c5ce7;
+      background: linear-gradient(90deg, #6c5ce7, #a29bfe);
       width: 0%;
-      transition: width .4s;
-      border-radius: 3px;
+      transition: width .6s ease;
+      border-radius: 4px;
     }
-    .progress-label { font-size: 0.78rem; color: #636e72; margin-top: 6px; }
+    .progress-label {
+      font-size: 0.78rem;
+      color: #636e72;
+      margin-top: 6px;
+      min-height: 18px;
+    }
+    .progress-steps {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      padding: 0 2px;
+    }
+    .progress-step {
+      font-size: 0.68rem;
+      color: #b2bec3;
+      text-align: center;
+      flex: 1;
+    }
+    .progress-step.active { color: #6c5ce7; font-weight: 600; }
+    .progress-step.done { color: #00b894; }
 
     /* ── 右側：索引面板 ── */
     .index-panel {
@@ -264,6 +283,12 @@
       <div class="progress-wrap" id="progressWrap">
         <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
         <div class="progress-label" id="progressLabel">處理中...</div>
+        <div class="progress-steps">
+          <div class="progress-step" id="pstep0">① 前處理</div>
+          <div class="progress-step" id="pstep1">② 語音轉錄</div>
+          <div class="progress-step" id="pstep2">③ 視覺分析</div>
+          <div class="progress-step" id="pstep3">④ 融合剪輯</div>
+        </div>
       </div>
     </div>
 
@@ -353,7 +378,7 @@
     }
   }
 
-  // ── 輪詢任務狀態 ────────────────────────────────────────
+      // ── 輪詢任務狀態 ────────────────────────────────────────
   function pollStatus() {
     clearInterval(pollTimer);
     pollTimer = setInterval(async () => {
@@ -362,7 +387,15 @@
         const data = await res.json();
 
         if (data.status === "processing") {
-          setProgress(50, "AI 分析中（語意 + 視覺）...");
+          const step = data.step ?? 0;
+          const total = data.step_total ?? 4;
+          const pct = data.progress_pct ?? Math.round((step / total) * 100);
+          const stepName = data.step_name ?? "處理中";
+          const eta = data.eta ?? "";
+          const msg = data.message ?? "";
+          setProgress(pct, `步驟 ${step + 1}/${total}：${stepName}${msg ? ' — ' + msg : ''}${eta ? '　預估剩餘 ' + eta : ''}`);
+        } else if (data.status === "queued") {
+          setProgress(5, "排隊等待處理...");
         } else if (data.status === "done") {
           clearInterval(pollTimer);
           setProgress(100, "完成！");
@@ -447,6 +480,20 @@
     wrap.style.display = "block";
     document.getElementById("progressFill").style.width  = pct + "%";
     document.getElementById("progressLabel").textContent = label;
+
+    // 更新步驟指示器
+    const stepPcts = [0, 10, 60, 90, 100];
+    for (let i = 0; i < 4; i++) {
+      const el = document.getElementById(`pstep${i}`);
+      if (!el) continue;
+      if (pct >= stepPcts[i + 1]) {
+        el.className = "progress-step done";
+      } else if (pct >= stepPcts[i]) {
+        el.className = "progress-step active";
+      } else {
+        el.className = "progress-step";
+      }
+    }
   }
 </script>
 </body>

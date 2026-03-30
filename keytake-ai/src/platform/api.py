@@ -111,23 +111,59 @@ def _run_sync(task_id: str, video_path: str):
     """降級同步處理（Celery 未啟動時使用）"""
     from src.platform.task_store import task_store
     from src.output.video_exporter import export_summary_video, export_index
-    import sys, os
+    import sys, os, time
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
-    task_store[task_id]["status"] = "processing"
+    # 步驟定義：(步驟名, 預估佔比)
+    STEPS = [
+        ("影音前處理", 0.10),
+        ("語音轉錄與語意評分", 0.50),
+        ("視覺特徵提取", 0.30),
+        ("多模態融合與剪輯", 0.10),
+    ]
+    start_time = time.time()
+
+    def update_progress(step_idx: int, message: str = ""):
+        elapsed = time.time() - start_time
+        # 預估總時間（根據已完成比例推算）
+        done_ratio = sum(r for _, r in STEPS[:step_idx])
+        if done_ratio > 0:
+            estimated_total = elapsed / done_ratio
+            remaining = max(0, estimated_total - elapsed)
+            eta = f"{int(remaining // 60)}分{int(remaining % 60)}秒"
+        else:
+            eta = "計算中..."
+
+        task_store[task_id] = {
+            "status": "processing",
+            "step": step_idx,
+            "step_name": STEPS[step_idx][0] if step_idx < len(STEPS) else "完成",
+            "step_total": len(STEPS),
+            "progress_pct": int(done_ratio * 100),
+            "eta": eta,
+            "message": message,
+        }
+
+    task_store[task_id] = {"status": "queued"}
     try:
         from main import run_pipeline
+
+        update_progress(0, "轉換影片格式...")
         out_dir = os.path.join(OUTPUT_DIR, task_id)
-        result = run_pipeline(video_path, output_dir=out_dir)
+        result = run_pipeline(video_path, output_dir=out_dir,
+                              progress_callback=update_progress)
 
         # 剪輯摘要影片
+        update_progress(3, "輸出摘要影片...")
         summary_path = os.path.join(out_dir, "summary.mp4")
-        export_summary_video(video_path, result["segments"], summary_path)
+        if result["segments"]:
+            export_summary_video(video_path, result["segments"], summary_path)
+        else:
+            summary_path = None
 
         # 匯出索引
         index_path = os.path.join(out_dir, "index.json")
-        segs_with_text = result["segments"]
-        export_index(segs_with_text, index_path)
+        export_index(result["segments"], index_path)
 
         task_store[task_id] = {
             "status": "done",

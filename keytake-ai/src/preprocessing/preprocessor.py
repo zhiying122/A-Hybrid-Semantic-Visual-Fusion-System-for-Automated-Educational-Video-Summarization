@@ -9,6 +9,12 @@ import ffmpeg
 import numpy as np
 from config import AUDIO_SNR_THRESHOLD, OUTPUT_FORMAT
 
+# Windows 上若 ffmpeg 不在 PATH，指定完整路徑
+import os
+_FFMPEG_PATH = r"C:\ffmpeg-8.1-essentials_build\bin\ffmpeg.exe"
+if os.path.exists(_FFMPEG_PATH):
+    os.environ["PATH"] = os.path.dirname(_FFMPEG_PATH) + os.pathsep + os.environ.get("PATH", "")
+
 
 def convert_to_mp4(input_path: str, output_path: str) -> str:
     """將任意格式影片轉換為 MP4"""
@@ -63,13 +69,22 @@ def preprocess(input_path: str, output_dir: str) -> dict:
     extract_audio(video_out, audio_out)
 
     # 動態判斷是否需要降噪
-    audio_samples = np.frombuffer(open(audio_out, "rb").read()[44:], dtype=np.int16).astype(np.float32)
-    snr = estimate_snr(audio_samples)
-    if snr < AUDIO_SNR_THRESHOLD:
-        print(f"[Preprocessor] SNR={snr:.1f}dB 過低，啟用頻譜減法")
-        cleaned = apply_spectral_subtraction(audio_samples, sr=16000)
-        cleaned.astype(np.int16).tofile(audio_out)
-    else:
-        print(f"[Preprocessor] SNR={snr:.1f}dB 正常，使用原始音訊")
+    snr = float("inf")
+    try:
+        with open(audio_out, "rb") as f:
+            raw = f.read()[44:]  # 跳過 WAV header
+        if len(raw) > 0:
+            audio_samples = np.frombuffer(raw, dtype=np.int16).astype(np.float32)
+            snr = float(estimate_snr(audio_samples))
+            if snr < AUDIO_SNR_THRESHOLD:
+                print(f"[Preprocessor] SNR={snr:.1f}dB 過低，啟用頻譜減法")
+                cleaned = apply_spectral_subtraction(audio_samples, sr=16000)
+                cleaned.astype(np.int16).tofile(audio_out)
+            else:
+                print(f"[Preprocessor] SNR={snr:.1f}dB 正常，使用原始音訊")
+        else:
+            print("[Preprocessor] 音訊檔案為空，跳過 SNR 檢查")
+    except Exception as e:
+        print(f"[Preprocessor] SNR 檢查失敗（{e}），使用原始音訊")
 
     return {"video": video_out, "audio": audio_out, "snr": snr}

@@ -57,19 +57,11 @@ def enhance_roi(roi: np.ndarray, scale: int = 4) -> np.ndarray:
     if roi is None or roi.size == 0:
         return roi
 
-    # 嘗試使用 Real-ESRGAN
-    if _upsampler is None:
-        _upsampler = _try_load_realesrgan()
-
-    if _upsampler is not None:
-        try:
-            enhanced, _ = _upsampler.enhance(roi, outscale=scale)
-            return enhanced
-        except Exception:
-            pass  # 失敗則降級
-
-    # 降級備援：bicubic 插值
+    # 直接使用 bicubic 降級備援（Real-ESRGAN 為延伸功能，需手動啟用）
     h, w = roi.shape[:2]
+    # 確保 dtype 相容
+    if roi.dtype != np.uint8:
+        roi = np.clip(roi, 0, 255).astype(np.uint8)
     return cv2.resize(roi, (w * scale, h * scale), interpolation=cv2.INTER_CUBIC)
 
 
@@ -80,7 +72,7 @@ def is_blurry(image: np.ndarray, threshold: float = 100.0) -> bool:
     """
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     variance = cv2.Laplacian(gray, cv2.CV_64F).var()
-    return variance < threshold
+    return bool(variance < threshold)
 
 
 def enhance_if_blurry(roi: np.ndarray, threshold: float = 100.0) -> tuple[np.ndarray, bool]:

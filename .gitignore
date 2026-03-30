@@ -36,6 +36,9 @@ output/
 ground_truth.json
 transcript.json
 
+# 暫存上傳與輸出影片
+tmp/
+
 # 系統與編輯器
 .DS_Store
 Thumbs.db
