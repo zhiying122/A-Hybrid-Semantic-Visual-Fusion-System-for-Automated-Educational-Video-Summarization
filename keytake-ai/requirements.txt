@@ -1,39 +1,46 @@
 # KeyTake AI — 依賴套件清單
+# 安裝：pip install -r requirements.txt
+#
+# 注意：以下工具需另外安裝（非 pip）
+#   FFmpeg:    https://ffmpeg.org/download.html
+#   Tesseract: https://github.com/UB-Mannheim/tesseract/wiki（Windows）
 
-# ── 影音處理 ──────────────────────────────────────────────
-ffmpeg-python
+# ── 核心 AI 模型 ──────────────────────────────────────
+openai-whisper==20250625          # 本地語音轉錄
+sentence-transformers==5.3.0      # SBERT 語意相似度
+torch==2.11.0                     # PyTorch（sentence-transformers 依賴）
+torchvision==0.26.0
+bert-score==0.3.13                # BERTScore 評估指標
 
-# ── 語音辨識 ──────────────────────────────────────────────
-openai-whisper
+# ── 視覺處理 ──────────────────────────────────────────
+opencv-python==4.13.0.92          # 影像處理、卡爾曼濾波
+mediapipe==0.10.33                # 手部骨架追蹤
+pytesseract==0.3.13               # OCR 文字辨識（需安裝 Tesseract 本體）
 
-# ── 語意分析 ──────────────────────────────────────────────
-sentence-transformers
-scikit-learn
-numpy
+# ── 影音處理 ──────────────────────────────────────────
+ffmpeg-python==0.2.0              # FFmpeg Python 包裝
+imageio-ffmpeg==0.6.0
 
-# ── 視覺處理 ──────────────────────────────────────────────
-mediapipe
-opencv-python
-Pillow
+# ── 語意分析 ──────────────────────────────────────────
+scikit-learn==1.8.0               # TF-IDF
+jieba==0.42.1                     # 中文斷詞（關鍵字萃取）
+numpy==2.4.3
+scipy==1.17.1
 
-# ── OCR ───────────────────────────────────────────────────
-pytesseract
+# ── Web 平台 ──────────────────────────────────────────
+fastapi==0.135.1                  # API 後端
+uvicorn==0.42.0                   # ASGI 伺服器
+python-multipart==0.0.22          # 檔案上傳支援
+pydantic==2.12.5
 
-# ── 評估指標 ──────────────────────────────────────────────
-bert-score
+# ── 非同步任務佇列 ────────────────────────────────────
+celery==5.6.2                     # 任務佇列
+redis==7.4.0                      # Redis 客戶端
+hiredis==3.3.1                    # Redis 效能加速
 
-# ── 後端平台 ──────────────────────────────────────────────
-fastapi
-uvicorn[standard]
-python-multipart
+# ── 遠端 Whisper API（選填）──────────────────────────
+openai==2.30.0                    # OpenAI API（WHISPER_MODE=remote 時使用）
 
-# ── 非同步任務佇列 ────────────────────────────────────────
-celery
-redis
-
-# ── 深度學習（SRGAN 延伸功能） ────────────────────────────
-torch
-torchvision
-
-# ── 測試 ──────────────────────────────────────────────────
-pytest
+# ── 測試 ──────────────────────────────────────────────
+hypothesis==6.151.9               # Property-based testing
+pytest                            # 測試框架

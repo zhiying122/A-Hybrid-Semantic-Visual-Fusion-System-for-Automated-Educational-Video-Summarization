@@ -414,9 +414,11 @@
         } else if (data.status === "error") {
           clearInterval(pollTimer);
           setProgress(0, `錯誤：${data.error}`);
+          showError(data.error);
         }
       } catch (e) {
         clearInterval(pollTimer);
+        showError("無法連線至伺服器，請確認後端是否正常運行");
       }
     }, 2000);
   }
@@ -488,6 +490,17 @@
     a.download = "keytake_index.json";
     a.click();
   });
+
+  // ── 錯誤提示 ────────────────────────────────────────
+  function showError(message) {
+    const wrap = document.getElementById("progressWrap");
+    wrap.style.display = "block";
+    const label = document.getElementById("progressLabel");
+    label.textContent = "處理失敗：" + message;
+    label.style.color = "#d63031";
+    document.getElementById("progressFill").style.background = "#d63031";
+    document.getElementById("progressFill").style.width = "100%";
+  }
 
   // ── 工具函式 ────────────────────────────────────────────
   function setProgress(pct, label) {
