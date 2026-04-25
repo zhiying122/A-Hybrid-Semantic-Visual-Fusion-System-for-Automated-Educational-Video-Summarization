@@ -114,7 +114,7 @@ def _run_sync(task_id: str, video_path: str):
     """降級同步處理（Celery 未啟動時使用）"""
     from src.platform.task_store import task_store
     from src.output.video_exporter import export_summary_video, export_index
-    import sys, os, time
+    import sys, os, time, json
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
     # 步驟定義：(步驟名, 預估佔比)
@@ -171,7 +171,7 @@ def _run_sync(task_id: str, video_path: str):
         task_store[task_id] = {
             "status": "done",
             "result": {
-                "segments": result["segments"],
+                "segments": json.load(open(index_path, encoding="utf-8")) if os.path.exists(index_path) else [],
                 "original_duration": result["original_duration"],
                 "summary_duration": result["summary_duration"],
                 "time_saving_rate": result["time_saving_rate"],

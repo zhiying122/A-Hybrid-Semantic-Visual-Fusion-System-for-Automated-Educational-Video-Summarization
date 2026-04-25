@@ -79,7 +79,14 @@ def preprocess(input_path: str, output_dir: str) -> dict:
             if snr < AUDIO_SNR_THRESHOLD:
                 print(f"[Preprocessor] SNR={snr:.1f}dB 過低，啟用頻譜減法")
                 cleaned = apply_spectral_subtraction(audio_samples, sr=16000)
-                cleaned.astype(np.int16).tofile(audio_out)
+                # 寫回合法 WAV 格式（保留 header）
+                import wave
+                cleaned_int16 = np.clip(cleaned, -32768, 32767).astype(np.int16)
+                with wave.open(audio_out, "wb") as wf:
+                    wf.setnchannels(1)
+                    wf.setsampwidth(2)
+                    wf.setframerate(16000)
+                    wf.writeframes(cleaned_int16.tobytes())
             else:
                 print(f"[Preprocessor] SNR={snr:.1f}dB 正常，使用原始音訊")
         else:

@@ -244,6 +244,11 @@
       color: #b2bec3;
       font-size: 0.85rem;
     }
+
+    @media (max-width: 768px) {
+      .container { grid-template-columns: 1fr; }
+      .index-list { max-height: 260px; }
+    }
   </style>
 </head>
 <body>
@@ -363,6 +368,12 @@
   fileInput.addEventListener("change", () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
 
   function handleFile(file) {
+    // 檔案大小檢查（超過 500MB 提醒）
+    const maxMB = 500;
+    if (file.size > maxMB * 1024 * 1024) {
+      if (!confirm(`檔案大小 ${(file.size / 1024 / 1024).toFixed(0)}MB，超過 ${maxMB}MB，處理時間可能很長。確定要上傳嗎？`)) return;
+    }
+
     // 本地預覽
     const url = URL.createObjectURL(file);
     const player = document.getElementById("videoPlayer");
@@ -375,6 +386,14 @@
   }
 
   async function uploadVideo(file) {
+    // 重置 UI 狀態
+    document.getElementById("statsArea").style.display = "none";
+    document.getElementById("indexList").innerHTML = '<div class="empty-state">處理中...</div>';
+    document.getElementById("btnDownload").disabled = true;
+    document.getElementById("btnExport").disabled = true;
+    document.getElementById("progressLabel").style.color = "#636e72";
+    document.getElementById("progressFill").style.background = "linear-gradient(90deg, #6c5ce7, #a29bfe)";
+
     setProgress(0, "上傳中...");
     const form = new FormData();
     form.append("file", file);
