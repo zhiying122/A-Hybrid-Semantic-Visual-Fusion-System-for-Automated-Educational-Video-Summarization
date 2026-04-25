@@ -63,17 +63,20 @@
 
     /* 時間軸色條（對應計畫書圖 5） */
     .timeline {
-      height: 10px;
+      height: 18px;
       background: #dfe6e9;
       position: relative;
       margin: 0;
+      cursor: pointer;
     }
     .timeline-segment {
       position: absolute;
       height: 100%;
-      border-radius: 2px;
+      border-radius: 3px;
       opacity: .85;
+      transition: opacity .2s;
     }
+    .timeline-segment:hover { opacity: 1; }
     .seg-semantic  { background: #00b894; }
     .seg-visual    { background: #e17055; }
     .seg-combined  { background: #6c5ce7; }
@@ -238,6 +241,17 @@
     .stat-value { font-size: 1.4rem; font-weight: 700; color: #6c5ce7; }
     .stat-label { font-size: 0.72rem; color: #636e72; margin-top: 2px; }
 
+    .stats.show { animation: fadeIn .5s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 0.72rem;
+      color: #b2bec3;
+    }
+    footer a { color: #6c5ce7; text-decoration: none; }
+
     .empty-state {
       text-align: center;
       padding: 40px 20px;
@@ -346,6 +360,10 @@
 
 </div>
 
+<footer>
+  KeyTake AI — 自動化教學精華擷取系統 | 國科會大專生研究計畫
+</footer>
+
 <script>
   const API = "";  // 同源，留空即可
 
@@ -393,6 +411,7 @@
     document.getElementById("btnExport").disabled = true;
     document.getElementById("progressLabel").style.color = "#636e72";
     document.getElementById("progressFill").style.background = "linear-gradient(90deg, #6c5ce7, #a29bfe)";
+    document.getElementById("uploadArea").style.display = "block";
 
     setProgress(0, "上傳中...");
     const form = new FormData();
@@ -428,7 +447,8 @@
           setProgress(5, "排隊等待處理...");
         } else if (data.status === "done") {
           clearInterval(pollTimer);
-          setProgress(100, "完成！");
+          setProgress(100, "✓ 摘要生成完成！");
+          document.getElementById("uploadArea").style.display = "none";
           renderResult(data.result);
         } else if (data.status === "error") {
           clearInterval(pollTimer);
@@ -450,6 +470,7 @@
 
     // 統計卡片
     document.getElementById("statsArea").style.display = "grid";
+    document.getElementById("statsArea").classList.add("show");
     document.getElementById("statOriginal").textContent = (total / 60).toFixed(1);
     document.getElementById("statSummary").textContent  = (summary / 60).toFixed(1);
     document.getElementById("statSaving").textContent   = ((1 - summary / total) * 100).toFixed(0) + "%";
@@ -465,7 +486,12 @@
       div.className = "timeline-segment " + (typeClassMap[seg.type] || "seg-combined");
       div.style.left  = (seg.start_sec / total * 100) + "%";
       div.style.width = ((seg.end_sec - seg.start_sec) / total * 100) + "%";
-      div.title = seg.label;
+      div.title = `${seg.timestamp} ${seg.label}`;
+      div.addEventListener("click", () => {
+        const player = document.getElementById("videoPlayer");
+        player.currentTime = seg.start_sec;
+        player.play();
+      });
       timeline.appendChild(div);
     });
 

@@ -61,8 +61,9 @@ def process_video_task(self, task_id: str, video_path: str) -> dict:
     if os.path.exists(video_path):
         os.remove(video_path)
 
+    import json
     return {
-        "segments": result["segments"],
+        "segments": json.load(open(index_path, encoding="utf-8")) if os.path.exists(index_path) else [],
         "original_duration": result["original_duration"],
         "summary_duration": result["summary_duration"],
         "time_saving_rate": result["time_saving_rate"],
