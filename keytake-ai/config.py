@@ -18,7 +18,7 @@ AUDIO_SNR_THRESHOLD = 10.0        # SNR 低於此值才啟用頻譜減法
 OUTPUT_FORMAT = "mp4"
 
 # ── 步驟二：語意分析 ────────────────────────────────
-WHISPER_MODEL = "base"            # tiny / base / small / medium / large
+WHISPER_MODEL = "base"            # tiny（最快）/ base / small / medium / large
 SBERT_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"  # 支援中文
 TFIDF_TOP_K = 20                  # 取前 K 個高權重關鍵詞
 SBERT_SIMILARITY_THRESHOLD = 0.6  # 與提示語料庫的最低餘弦相似度

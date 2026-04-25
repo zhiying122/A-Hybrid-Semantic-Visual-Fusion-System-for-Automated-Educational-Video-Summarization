@@ -21,7 +21,7 @@ import uuid
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(title="KeyTake AI", description="自動化教學精華擷取平台")
@@ -39,12 +39,18 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 @app.get("/")
 def index():
-    """提供前端介面"""
+    """提供前端介面（每次讀取最新檔案，徹底避免快取）"""
     html_path = os.path.join(_static_dir, "index.html")
     if os.path.exists(html_path):
-        return FileResponse(
-            html_path,
-            headers={"Cache-Control": "no-cache, no-store, must-revalidate"}
+        with open(html_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(
+            content=content,
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0",
+            }
         )
     return {"message": "KeyTake AI API is running"}
 
