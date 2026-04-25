@@ -163,13 +163,24 @@ if __name__ == "__main__":
     parser.add_argument("--gt", type=str, help="Ground Truth JSON 檔案路徑 (用於計算 Recall 與 FAR)，格式例如 [[10.5, 20.0], [45.0, 60.0]]", default=None)
     args = parser.parse_args()
 
-    # 讀取 Ground Truth
+    # 讀取 Ground Truth（支援兩種格式）
     gt_data = None
     if args.gt and os.path.exists(args.gt):
         with open(args.gt, "r", encoding="utf-8") as f:
-            gt_data = json.load(f)
-            # 確保格式為 list of tuples
-            gt_data = [(float(start), float(end)) for start, end in gt_data]
+            raw = json.load(f)
+        # 格式一：annotator.py 產出的 {"ground_truth": [{"start": ..., "end": ...}]}
+        if isinstance(raw, dict) and "ground_truth" in raw:
+            gt_list = raw["ground_truth"]
+            gt_data = []
+            for g in gt_list:
+                if isinstance(g, dict):
+                    gt_data.append((float(g.get("start", g.get("start_sec", 0))),
+                                    float(g.get("end", g.get("end_sec", 0)))))
+                else:
+                    gt_data.append((float(g[0]), float(g[1])))
+        # 格式二：簡單陣列 [[10.5, 20.0], [45.0, 60.0]]
+        elif isinstance(raw, list):
+            gt_data = [(float(g[0]), float(g[1])) for g in raw]
 
     result = run_pipeline(args.video_path, ground_truth=gt_data)
     

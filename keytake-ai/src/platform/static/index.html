@@ -341,6 +341,32 @@
         <div class="stat-label">精華片段數</div>
       </div>
     </div>
+
+    <!-- 時長對比條 -->
+    <div id="durationCompare" style="display:none;padding:0 16px 16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="font-size:.72rem;color:#636e72;min-width:90px">原始長度</span>
+        <div style="flex:1;height:14px;background:#dfe6e9;border-radius:7px;overflow:hidden">
+          <div style="width:100%;height:100%;background:#b2bec3;border-radius:7px"></div>
+        </div>
+        <span id="durOrigLabel" style="font-size:.72rem;color:#636e72;min-width:50px;text-align:right">—</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:.72rem;color:#6c5ce7;font-weight:600;min-width:90px">AI 濃縮</span>
+        <div style="flex:1;height:14px;background:#dfe6e9;border-radius:7px;overflow:hidden">
+          <div id="durSummaryBar" style="width:0%;height:100%;background:linear-gradient(90deg,#6c5ce7,#a29bfe);border-radius:7px;transition:width .8s ease"></div>
+        </div>
+        <span id="durSummLabel" style="font-size:.72rem;color:#6c5ce7;font-weight:600;min-width:50px;text-align:right">—</span>
+      </div>
+    </div>
+
+    <!-- 影片切換按鈕 -->
+    <div id="videoSwitcher" style="display:none;padding:0 16px 12px;display:none">
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline" id="btnOriginal" onclick="switchVideo('original')" style="flex:1;font-size:.78rem">原始影片</button>
+        <button class="btn btn-primary" id="btnSummary" onclick="switchVideo('summary')" style="flex:1;font-size:.78rem">摘要影片</button>
+      </div>
+    </div>
   </div>
 
   <!-- 右側索引面板 -->
@@ -370,6 +396,7 @@
   let taskId = null;
   let pollTimer = null;
   let indexData = [];
+  let originalVideoUrl = null;
 
   // ── 上傳區互動 ──────────────────────────────────────────
   const uploadArea = document.getElementById("uploadArea");
@@ -394,6 +421,7 @@
 
     // 本地預覽
     const url = URL.createObjectURL(file);
+    originalVideoUrl = url;
     const player = document.getElementById("videoPlayer");
     player.src = url;
     player.style.display = "block";
@@ -521,6 +549,32 @@
     // 啟用按鈕
     document.getElementById("btnDownload").disabled = false;
     document.getElementById("btnExport").disabled   = false;
+
+    // 時長對比條
+    const durCompare = document.getElementById("durationCompare");
+    durCompare.style.display = "block";
+    document.getElementById("durOrigLabel").textContent = (total / 60).toFixed(1) + " min";
+    document.getElementById("durSummLabel").textContent = (summary / 60).toFixed(1) + " min";
+    const pctWidth = total > 0 ? Math.round((summary / total) * 100) : 0;
+    setTimeout(() => { document.getElementById("durSummaryBar").style.width = pctWidth + "%"; }, 100);
+
+    // 影片切換按鈕
+    document.getElementById("videoSwitcher").style.display = "block";
+  }
+
+  // ── 影片切換（原始 / 摘要）────────────────────────────
+  function switchVideo(mode) {
+    const player = document.getElementById("videoPlayer");
+    if (mode === "summary" && taskId) {
+      player.src = `${API}/download/${taskId}`;
+      document.getElementById("btnSummary").className = "btn btn-primary";
+      document.getElementById("btnOriginal").className = "btn btn-outline";
+    } else if (originalVideoUrl) {
+      player.src = originalVideoUrl;
+      document.getElementById("btnOriginal").className = "btn btn-primary";
+      document.getElementById("btnSummary").className = "btn btn-outline";
+    }
+    player.play();
   }
 
   // ── 下載 / 匯出 ─────────────────────────────────────────

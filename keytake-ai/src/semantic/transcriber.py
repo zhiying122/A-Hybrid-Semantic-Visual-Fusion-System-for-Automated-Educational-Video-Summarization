@@ -2,6 +2,7 @@
 步驟二（前半）：OpenAI Whisper 語音轉錄
 - 本地模式（預設）：使用本機 Whisper 模型，完全離線
 - 遠端模式：使用 OpenAI Whisper API，速度快 10 倍以上
+- 內建 Whisper 幻覺過濾：合併連續重複片段
 
 切換方式（在啟動 uvicorn 前設定環境變數）：
   # 本地跑（預設，不需設定任何環境變數）
@@ -18,6 +19,26 @@ import whisper
 from config import WHISPER_MODEL
 
 
+def _deduplicate_segments(segments: list[dict]) -> list[dict]:
+    """
+    Whisper 幻覺過濾：合併連續重複的片段。
+    當影片有長時間靜音時，Whisper 可能重複輸出上一句文字。
+    """
+    if not segments:
+        return segments
+    deduped = [segments[0]]
+    for seg in segments[1:]:
+        if seg["text"] == deduped[-1]["text"]:
+            # 合併：延伸前一段的結束時間
+            deduped[-1]["end"] = seg["end"]
+        else:
+            deduped.append(seg)
+    removed = len(segments) - len(deduped)
+    if removed > 0:
+        print(f"[Transcriber] 幻覺過濾：合併了 {removed} 個重複片段")
+    return deduped
+
+
 def transcribe(audio_path: str) -> list[dict]:
     """
     語音轉錄入口，依 WHISPER_MODE 環境變數自動選擇本地或遠端模式
@@ -26,10 +47,11 @@ def transcribe(audio_path: str) -> list[dict]:
     mode = os.getenv("WHISPER_MODE", "local").lower()
     if mode == "remote":
         print("[Transcriber] 使用遠端 OpenAI Whisper API")
-        return _transcribe_remote(audio_path)
+        segments = _transcribe_remote(audio_path)
     else:
         print("[Transcriber] 使用本地 Whisper 模型")
-        return _transcribe_local(audio_path)
+        segments = _transcribe_local(audio_path)
+    return _deduplicate_segments(segments)
 
 
 def _transcribe_local(audio_path: str) -> list[dict]:
