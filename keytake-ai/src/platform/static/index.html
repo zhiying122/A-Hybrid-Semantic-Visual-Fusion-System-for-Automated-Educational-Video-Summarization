@@ -5,388 +5,523 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>KeyTake AI — 自動化教學精華擷取平台</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f5f6fa;
-      color: #2d3436;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #6c5ce7;
+      --primary-light: #a29bfe;
+      --primary-bg: #f0eeff;
+      --success: #00b894;
+      --success-light: #e6f9f4;
+      --warning: #e17055;
+      --error: #d63031;
+      --dark: #2d3436;
+      --dark-secondary: #636e72;
+      --border: #e0e3e8;
+      --border-light: #f0f0f0;
+      --muted: #b2bec3;
+      --bg: #f5f6fa;
+      --card: #ffffff;
+      --card-hover: #f8f9fa;
+      --radius: 10px;
+      --radius-sm: 6px;
+      --shadow: 0 2px 12px rgba(0,0,0,.07);
+      --shadow-lg: 0 8px 30px rgba(0,0,0,.10);
+      --transition: .2s ease;
     }
-
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif;
+      background: var(--bg);
+      color: var(--dark);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
     header {
-      background: #2d3436;
+      background: var(--dark);
       color: #fff;
-      padding: 14px 28px;
+      padding: 0 32px;
+      height: 56px;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
     }
-    header h1 { font-size: 1.1rem; font-weight: 600; }
-    header span { font-size: 0.8rem; color: #b2bec3; }
-
+    .header-logo { display: flex; align-items: center; gap: 10px; }
+    .header-logo svg { flex-shrink: 0; }
+    header h1 { font-size: 1.05rem; font-weight: 700; letter-spacing: .02em; }
+    .header-divider { width: 1px; height: 20px; background: rgba(255,255,255,.15); margin: 0 4px; }
+    header .subtitle { font-size: 0.78rem; color: var(--muted); font-weight: 400; }
     .container {
-      max-width: 1100px;
-      margin: 32px auto;
-      padding: 0 20px;
+      max-width: 1200px;
+      margin: 28px auto;
+      padding: 0 24px;
       display: grid;
-      grid-template-columns: 1fr 320px;
+      grid-template-columns: 1fr 340px;
       gap: 24px;
+      align-items: start;
     }
-
-    /* ── 左側：影片區 ── */
-    .video-panel {
-      background: #fff;
-      border-radius: 10px;
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
       overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,.08);
     }
-
     .video-wrapper {
-      background: #000;
-      aspect-ratio: 16/9;
+      background: #0a0a0a;
+      aspect-ratio: 16 / 9;
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
     }
-    .video-wrapper video {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
+    .video-wrapper video { width: 100%; height: 100%; object-fit: contain; }
     .video-placeholder {
-      color: #636e72;
+      color: var(--dark-secondary);
       text-align: center;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
     }
-    .video-placeholder svg { margin-bottom: 8px; opacity: .4; }
-
-    /* 時間軸色條（對應計畫書圖 5） */
+    .video-placeholder svg { opacity: .35; }
+    .video-placeholder p { color: var(--muted); font-size: 0.82rem; }
     .timeline {
       height: 18px;
-      background: #dfe6e9;
+      background: #e8ecef;
       position: relative;
-      margin: 0;
       cursor: pointer;
+      transition: background var(--transition);
     }
+    .timeline:hover { background: #dfe3e6; }
     .timeline-segment {
       position: absolute;
       height: 100%;
       border-radius: 3px;
       opacity: .85;
-      transition: opacity .2s;
+      transition: opacity var(--transition), transform var(--transition);
+      cursor: pointer;
     }
-    .timeline-segment:hover { opacity: 1; }
-    .seg-semantic  { background: #00b894; }
-    .seg-visual    { background: #e17055; }
-    .seg-combined  { background: #6c5ce7; }
-
+    .timeline-segment:hover { opacity: 1; transform: scaleY(1.3); z-index: 2; }
+    .seg-semantic  { background: var(--success); }
+    .seg-visual    { background: var(--warning); }
+    .seg-combined  { background: var(--primary); }
     .timeline-legend {
       display: flex;
-      gap: 16px;
-      padding: 8px 16px;
-      font-size: 0.72rem;
-      color: #636e72;
+      gap: 20px;
+      padding: 10px 20px;
+      font-size: 0.75rem;
+      color: var(--dark-secondary);
+      border-bottom: 1px solid var(--border-light);
     }
-    .legend-dot {
-      width: 10px; height: 10px;
-      border-radius: 50%;
-      display: inline-block;
-      margin-right: 4px;
-    }
-
-    /* 上傳區 */
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
     .upload-area {
-      border: 2px dashed #b2bec3;
+      border: 2px dashed var(--border);
       border-radius: 8px;
-      padding: 32px;
+      padding: 36px 24px;
       text-align: center;
       cursor: pointer;
-      transition: border-color .2s, background .2s;
-      margin: 16px;
+      transition: border-color var(--transition), background var(--transition), transform var(--transition);
+      margin: 20px;
     }
     .upload-area:hover, .upload-area.drag-over {
-      border-color: #6c5ce7;
-      background: #f0eeff;
+      border-color: var(--primary);
+      background: var(--primary-bg);
     }
+    .upload-area:active { transform: scale(.99); }
     .upload-area input { display: none; }
-    .upload-area p { font-size: 0.85rem; color: #636e72; margin-top: 8px; }
-
-    .btn {
-      display: inline-block;
-      padding: 9px 22px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      font-size: 0.85rem;
-      font-weight: 600;
-      transition: opacity .15s;
+    .upload-icon {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--bg);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+      transition: background var(--transition);
     }
-    .btn:hover { opacity: .85; }
-    .btn-primary { background: #6c5ce7; color: #fff; }
-    .btn-outline { background: transparent; border: 1.5px solid #6c5ce7; color: #6c5ce7; }
-    .btn:disabled { opacity: .4; cursor: not-allowed; }
-
-    /* 進度條 */
-    .progress-wrap { padding: 0 16px 16px; display: none; }
-    .progress-bar {
-      height: 8px;
-      background: #dfe6e9;
-      border-radius: 4px;
-      overflow: hidden;
-    }
+    .upload-area:hover .upload-icon { background: var(--primary-bg); }
+    .upload-title { font-size: 0.88rem; font-weight: 600; color: var(--dark); margin-bottom: 4px; }
+    .upload-hint { font-size: 0.75rem; color: var(--muted); }
+    .progress-wrap { padding: 20px; display: none; }
+    .progress-bar { height: 6px; background: #e8ecef; border-radius: 3px; overflow: hidden; }
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, #6c5ce7, #a29bfe);
+      background: linear-gradient(90deg, var(--primary), var(--primary-light));
       width: 0%;
       transition: width .6s ease;
-      border-radius: 4px;
+      border-radius: 3px;
     }
     .progress-label {
       font-size: 0.78rem;
-      color: #636e72;
-      margin-top: 6px;
-      min-height: 18px;
-    }
-    .progress-steps {
+      color: var(--dark-secondary);
+      margin-top: 10px;
+      min-height: 20px;
       display: flex;
-      justify-content: space-between;
-      margin-top: 8px;
-      padding: 0 2px;
+      align-items: center;
+      gap: 6px;
     }
+    .progress-steps { display: flex; justify-content: space-between; margin-top: 16px; gap: 4px; }
     .progress-step {
-      font-size: 0.68rem;
-      color: #b2bec3;
-      text-align: center;
-      flex: 1;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 6px; flex: 1; text-align: center;
     }
-    .progress-step.active { color: #6c5ce7; font-weight: 600; }
-    .progress-step.done { color: #00b894; }
-
-    /* ── 右側：索引面板 ── */
+    .step-circle {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: #e8ecef; color: var(--muted);
+      font-size: 0.72rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .3s ease;
+    }
+    .step-circle .step-check { display: none; }
+    .step-label { font-size: 0.68rem; color: var(--muted); transition: color .3s ease; white-space: nowrap; }
+    .progress-step.active .step-circle {
+      background: var(--primary); color: #fff;
+      box-shadow: 0 2px 8px rgba(108,92,231,.35);
+    }
+    .progress-step.active .step-label { color: var(--primary); font-weight: 600; }
+    .progress-step.done .step-circle { background: var(--success); color: #fff; }
+    .progress-step.done .step-circle .step-num { display: none; }
+    .progress-step.done .step-circle .step-check { display: block; }
+    .progress-step.done .step-label { color: var(--success); font-weight: 500; }
+    .video-switcher {
+      padding: 0 20px 16px;
+      display: none;
+    }
+    .switcher-group { display: flex; gap: 8px; }
+    .stats {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      padding: 20px;
+    }
+    .stat-card {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 16px 12px;
+      text-align: center;
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+    .stat-icon {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 8px;
+    }
+    .stat-icon.purple { background: var(--primary-bg); }
+    .stat-icon.green { background: var(--success-light); }
+    .stat-icon.orange { background: #ffeee8; }
+    .stat-value { font-size: 1.5rem; font-weight: 700; color: var(--primary); line-height: 1.2; }
+    .stat-label { font-size: 0.72rem; color: var(--dark-secondary); margin-top: 4px; }
+    .stats.show { animation: fadeSlideIn .5s ease; }
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: none; }
+    }
+    .duration-compare {
+      padding: 0 20px 20px;
+      display: none;
+    }
+    .dur-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .dur-row:last-child { margin-bottom: 0; }
+    .dur-label-text { font-size: 0.75rem; color: var(--dark-secondary); min-width: 80px; }
+    .dur-label-text.highlight { color: var(--primary); font-weight: 600; }
+    .dur-track { flex: 1; height: 12px; background: #e8ecef; border-radius: 6px; overflow: hidden; }
+    .dur-fill-orig { width: 100%; height: 100%; background: var(--muted); border-radius: 6px; }
+    .dur-fill-summ {
+      width: 0%; height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--primary-light));
+      border-radius: 6px;
+      transition: width .8s ease;
+    }
+    .dur-value { font-size: 0.75rem; color: var(--dark-secondary); min-width: 55px; text-align: right; }
+    .dur-value.highlight { color: var(--primary); font-weight: 600; }
     .index-panel {
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
       display: flex;
       flex-direction: column;
+      max-height: calc(100vh - 112px);
+      position: sticky;
+      top: 84px;
     }
     .index-header {
-      padding: 16px 18px 12px;
-      border-bottom: 1px solid #f0f0f0;
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--border-light);
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .index-header h2 { font-size: 0.9rem; font-weight: 600; }
-    .index-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px 0;
-      max-height: 420px;
+    .index-header h2 { font-size: 0.92rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .index-count {
+      font-size: 0.7rem;
+      background: var(--primary-bg);
+      color: var(--primary);
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
     }
+    .index-list { flex: 1; overflow-y: auto; padding: 6px 0; max-height: 440px; }
+    .index-list::-webkit-scrollbar { width: 4px; }
+    .index-list::-webkit-scrollbar-track { background: transparent; }
+    .index-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
     .index-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 18px;
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 20px;
       cursor: pointer;
-      transition: background .15s;
+      transition: background var(--transition);
       border-left: 3px solid transparent;
     }
-    .index-item:hover { background: #f8f9fa; }
-    .index-item.active {
-      background: #f0eeff;
-      border-left-color: #6c5ce7;
-    }
+    .index-item:hover { background: var(--card-hover); }
+    .index-item.active { background: var(--primary-bg); border-left-color: var(--primary); }
     .index-time {
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: #6c5ce7;
-      min-width: 44px;
+      font-size: 0.75rem; font-weight: 600; color: var(--primary);
+      min-width: 48px; font-variant-numeric: tabular-nums;
+      background: var(--primary-bg); padding: 2px 6px; border-radius: 4px;
     }
-    .index-label { font-size: 0.82rem; color: #2d3436; }
+    .index-label { font-size: 0.82rem; color: var(--dark); flex: 1; line-height: 1.4; }
     .seg-badge {
-      font-size: 0.65rem;
-      padding: 2px 6px;
-      border-radius: 10px;
-      color: #fff;
-      white-space: nowrap;
-      flex-shrink: 0;
+      font-size: 0.62rem; padding: 2px 8px; border-radius: 10px;
+      color: #fff; white-space: nowrap; flex-shrink: 0; font-weight: 500;
     }
-    .badge-semantic  { background: #00b894; }
-    .badge-visual    { background: #e17055; }
-    .badge-combined  { background: #6c5ce7; }
-
+    .badge-semantic { background: var(--success); }
+    .badge-visual   { background: var(--warning); }
+    .badge-combined { background: var(--primary); }
     .index-footer {
-      padding: 14px 18px;
-      border-top: 1px solid #f0f0f0;
+      padding: 16px 20px;
+      border-top: 1px solid var(--border-light);
       display: flex;
       gap: 8px;
     }
-
-    /* 統計卡片 */
-    .stats {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      padding: 16px;
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 9px 20px; border-radius: var(--radius-sm); border: none;
+      cursor: pointer; font-size: 0.82rem; font-weight: 600;
+      transition: all var(--transition); flex: 1;
+      font-family: inherit;
     }
-    .stat-card {
-      background: #f8f9fa;
-      border-radius: 8px;
-      padding: 12px;
-      text-align: center;
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(108,92,231,.25); }
+    .btn-primary:hover { background: #5b4bd5; box-shadow: 0 4px 12px rgba(108,92,231,.35); }
+    .btn-outline {
+      background: transparent; border: 1.5px solid var(--border);
+      color: var(--dark-secondary);
     }
-    .stat-value { font-size: 1.4rem; font-weight: 700; color: #6c5ce7; }
-    .stat-label { font-size: 0.72rem; color: #636e72; margin-top: 2px; }
-
-    .stats.show { animation: fadeIn .5s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-
-    footer {
-      text-align: center;
-      padding: 20px;
-      font-size: 0.72rem;
-      color: #b2bec3;
-    }
-    footer a { color: #6c5ce7; text-decoration: none; }
-
+    .btn-outline:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-bg); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; transform: none !important; }
+    .btn svg { flex-shrink: 0; }
     .empty-state {
-      text-align: center;
-      padding: 40px 20px;
-      color: #b2bec3;
-      font-size: 0.85rem;
+      text-align: center; padding: 48px 24px;
+      color: var(--muted); font-size: 0.85rem;
     }
-
-    @media (max-width: 768px) {
+    .empty-state svg { margin-bottom: 12px; opacity: .3; }
+    .error-display {
+      margin: 12px 20px;
+      padding: 12px 16px;
+      background: #ffeaea;
+      border: 1px solid #ffc9c9;
+      border-radius: var(--radius-sm);
+      color: var(--error);
+      font-size: 0.82rem;
+      display: none;
+    }
+    footer.site-footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border-light);
+      margin-top: 12px;
+    }
+    @media (max-width: 900px) {
       .container { grid-template-columns: 1fr; }
-      .index-list { max-height: 260px; }
+      .index-panel { position: static; max-height: none; }
+      .index-list { max-height: 300px; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      header { padding: 0 16px; gap: 10px; }
+      header h1 { font-size: 0.95rem; }
+      .header-divider, header .subtitle { display: none; }
+      .container { padding: 0 12px; margin: 16px auto; gap: 16px; }
+      .upload-area { padding: 28px 16px; margin: 16px; }
+      .stats { grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 16px; }
+      .stat-value { font-size: 1.2rem; }
+      .progress-steps { gap: 2px; }
+      .step-label { font-size: 0.6rem; }
+      .index-footer { flex-direction: column; }
+      .timeline-legend { gap: 12px; padding: 8px 16px; font-size: 0.68rem; }
     }
   </style>
 </head>
 <body>
 
-<header>
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a29bfe" stroke-width="2">
-    <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
-  </svg>
-  <h1>KeyTake AI</h1>
-  <span>自動化教學精華擷取平台</span>
+<header role="banner">
+  <div class="header-logo">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a29bfe" stroke-width="2" aria-hidden="true">
+      <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+    </svg>
+    <h1>KeyTake AI</h1>
+  </div>
+  <div class="header-divider" aria-hidden="true"></div>
+  <span class="subtitle">自動化教學精華擷取平台</span>
 </header>
 
-<div class="container">
-
-  <!-- 左側 -->
-  <div>
-    <div class="video-panel">
+<main class="container" role="main">
+  <!-- Left Column -->
+  <div class="left-column">
+    <section class="card video-panel" aria-label="影片播放區">
       <div class="video-wrapper" id="videoWrapper">
         <div class="video-placeholder" id="videoPlaceholder">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
             <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
           </svg>
           <p>上傳影片後顯示摘要播放器</p>
         </div>
-        <video id="videoPlayer" style="display:none" controls></video>
+        <video id="videoPlayer" style="display:none" controls aria-label="影片播放器"></video>
       </div>
 
-      <!-- 時間軸 -->
-      <div class="timeline" id="timeline"></div>
-      <div class="timeline-legend">
-        <span><span class="legend-dot" style="background:#00b894"></span>語意重點</span>
-        <span><span class="legend-dot" style="background:#e17055"></span>板書書寫</span>
-        <span><span class="legend-dot" style="background:#6c5ce7"></span>雙模態對齊</span>
+      <div class="timeline" id="timeline" role="slider" aria-label="影片時間軸" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+      <div class="timeline-legend" aria-label="時間軸圖例">
+        <span class="legend-item"><span class="legend-dot" style="background:var(--success)" aria-hidden="true"></span>語意重點</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--warning)" aria-hidden="true"></span>板書書寫</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--primary)" aria-hidden="true"></span>雙模態對齊</span>
       </div>
 
-      <!-- 上傳區 -->
-      <div class="upload-area" id="uploadArea">
-        <input type="file" id="fileInput" accept="video/*" />
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#b2bec3" stroke-width="1.5">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-        </svg>
-        <p>點擊或拖曳影片至此處上傳</p>
-        <p style="margin-top:4px;font-size:.72rem">支援 MP4、AVI、MOV、MKV</p>
-      </div>
-
-      <!-- 進度條 -->
-      <div class="progress-wrap" id="progressWrap">
-        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-        <div class="progress-label" id="progressLabel">處理中...</div>
-        <div class="progress-steps">
-          <div class="progress-step" id="pstep0">① 前處理</div>
-          <div class="progress-step" id="pstep1">② 語音轉錄</div>
-          <div class="progress-step" id="pstep2">③ 視覺分析</div>
-          <div class="progress-step" id="pstep3">④ 融合剪輯</div>
+      <div class="upload-area" id="uploadArea" role="button" tabindex="0" aria-label="上傳影片">
+        <input type="file" id="fileInput" accept="video/*" aria-label="選擇影片檔案" />
+        <div class="upload-icon" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
         </div>
+        <p class="upload-title">點擊或拖曳影片至此處上傳</p>
+        <p class="upload-hint">支援 MP4、AVI、MOV、MKV（建議 500MB 以內）</p>
+      </div>
+
+      <div class="progress-wrap" id="progressWrap" role="status" aria-live="polite">
+        <div class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-label" id="progressLabel">處理中...</div>
+        <div class="progress-steps" aria-label="處理步驟">
+          <div class="progress-step" id="pstep0">
+            <span class="step-circle"><span class="step-num">1</span><svg class="step-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <span class="step-label">前處理</span>
+          </div>
+          <div class="progress-step" id="pstep1">
+            <span class="step-circle"><span class="step-num">2</span><svg class="step-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <span class="step-label">語音轉錄</span>
+          </div>
+          <div class="progress-step" id="pstep2">
+            <span class="step-circle"><span class="step-num">3</span><svg class="step-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <span class="step-label">視覺分析</span>
+          </div>
+          <div class="progress-step" id="pstep3">
+            <span class="step-circle"><span class="step-num">4</span><svg class="step-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <span class="step-label">融合剪輯</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Video Switcher -->
+    <div id="videoSwitcher" class="video-switcher" style="display:none" aria-label="影片切換">
+      <div class="switcher-group">
+        <button class="btn btn-outline" id="btnOriginal" onclick="switchVideo('original')" aria-label="播放原始影片">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="2"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+          原始影片
+        </button>
+        <button class="btn btn-primary" id="btnSummary" onclick="switchVideo('summary')" aria-label="播放摘要影片">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          摘要影片
+        </button>
       </div>
     </div>
 
-    <!-- 統計卡片 -->
-    <div class="stats" id="statsArea" style="display:none">
+    <!-- Stats Cards -->
+    <section class="stats" id="statsArea" style="display:none" aria-label="摘要統計">
       <div class="stat-card">
-        <div class="stat-value" id="statOriginal">—</div>
+        <div class="stat-icon purple" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="stat-value" id="statOriginal">--</div>
         <div class="stat-label">原始時長（分鐘）</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value" id="statSummary">—</div>
+        <div class="stat-icon green" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="stat-value" id="statSummary">--</div>
         <div class="stat-label">摘要時長（分鐘）</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value" id="statSaving">—</div>
+        <div class="stat-icon orange" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        </div>
+        <div class="stat-value" id="statSaving">--</div>
         <div class="stat-label">時間節省率</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value" id="statSegments">—</div>
+        <div class="stat-icon purple" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        </div>
+        <div class="stat-value" id="statSegments">--</div>
         <div class="stat-label">精華片段數</div>
       </div>
-    </div>
+    </section>
 
-    <!-- 時長對比條 -->
-    <div id="durationCompare" style="display:none;padding:0 16px 16px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <span style="font-size:.72rem;color:#636e72;min-width:90px">原始長度</span>
-        <div style="flex:1;height:14px;background:#dfe6e9;border-radius:7px;overflow:hidden">
-          <div style="width:100%;height:100%;background:#b2bec3;border-radius:7px"></div>
-        </div>
-        <span id="durOrigLabel" style="font-size:.72rem;color:#636e72;min-width:50px;text-align:right">—</span>
+    <!-- Duration Compare -->
+    <div id="durationCompare" class="duration-compare" style="display:none" aria-label="時長對比">
+      <div class="dur-row">
+        <span class="dur-label-text">原始長度</span>
+        <div class="dur-track"><div class="dur-fill-orig"></div></div>
+        <span class="dur-value" id="durOrigLabel">--</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:.72rem;color:#6c5ce7;font-weight:600;min-width:90px">AI 濃縮</span>
-        <div style="flex:1;height:14px;background:#dfe6e9;border-radius:7px;overflow:hidden">
-          <div id="durSummaryBar" style="width:0%;height:100%;background:linear-gradient(90deg,#6c5ce7,#a29bfe);border-radius:7px;transition:width .8s ease"></div>
-        </div>
-        <span id="durSummLabel" style="font-size:.72rem;color:#6c5ce7;font-weight:600;min-width:50px;text-align:right">—</span>
-      </div>
-    </div>
-
-    <!-- 影片切換按鈕 -->
-    <div id="videoSwitcher" style="display:none;padding:0 16px 12px;display:none">
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-outline" id="btnOriginal" onclick="switchVideo('original')" style="flex:1;font-size:.78rem">原始影片</button>
-        <button class="btn btn-primary" id="btnSummary" onclick="switchVideo('summary')" style="flex:1;font-size:.78rem">摘要影片</button>
+      <div class="dur-row">
+        <span class="dur-label-text highlight">AI 濃縮</span>
+        <div class="dur-track"><div class="dur-fill-summ" id="durSummaryBar"></div></div>
+        <span class="dur-value highlight" id="durSummLabel">--</span>
       </div>
     </div>
   </div>
 
-  <!-- 右側索引面板 -->
-  <div class="index-panel">
+  <!-- Right Column: Index Panel -->
+  <aside class="index-panel" aria-label="精華片段索引">
     <div class="index-header">
-      <h2>精華片段索引</h2>
-      <span id="segCount" style="font-size:.78rem;color:#b2bec3">—</span>
+      <h2>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        精華片段索引
+      </h2>
+      <span id="segCount" class="index-count" aria-live="polite">--</span>
     </div>
-    <div class="index-list" id="indexList">
-      <div class="empty-state">上傳影片後<br>自動生成索引</div>
+    <div class="index-list" id="indexList" role="list" aria-label="片段列表">
+      <div class="empty-state">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>
+        </svg>
+        <p>上傳影片後自動生成索引</p>
+      </div>
     </div>
     <div class="index-footer">
-      <button class="btn btn-primary" id="btnDownload" disabled>下載濃縮影片</button>
-      <button class="btn btn-outline" id="btnExport" disabled>匯出索引</button>
+      <button class="btn btn-primary" id="btnDownload" disabled aria-label="下載濃縮影片">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        下載濃縮影片
+      </button>
+      <button class="btn btn-outline" id="btnExport" disabled aria-label="匯出索引 JSON">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        匯出索引
+      </button>
     </div>
-  </div>
+  </aside>
+</main>
 
-</div>
-
-<footer>
+<footer class="site-footer" role="contentinfo">
   KeyTake AI — 自動化教學精華擷取系統
 </footer>
 
@@ -403,6 +538,7 @@
   const fileInput  = document.getElementById("fileInput");
 
   uploadArea.addEventListener("click", () => fileInput.click());
+  uploadArea.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); } });
   uploadArea.addEventListener("dragover", e => { e.preventDefault(); uploadArea.classList.add("drag-over"); });
   uploadArea.addEventListener("dragleave", () => uploadArea.classList.remove("drag-over"));
   uploadArea.addEventListener("drop", e => {
@@ -434,11 +570,11 @@
   async function uploadVideo(file) {
     // 重置 UI 狀態
     document.getElementById("statsArea").style.display = "none";
-    document.getElementById("indexList").innerHTML = '<div class="empty-state">處理中...</div>';
+    document.getElementById("indexList").innerHTML = '<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><p>處理中...</p></div>';
     document.getElementById("btnDownload").disabled = true;
     document.getElementById("btnExport").disabled = true;
-    document.getElementById("progressLabel").style.color = "#636e72";
-    document.getElementById("progressFill").style.background = "linear-gradient(90deg, #6c5ce7, #a29bfe)";
+    document.getElementById("progressLabel").style.color = "var(--dark-secondary)";
+    document.getElementById("progressFill").style.background = "linear-gradient(90deg, var(--primary), var(--primary-light))";
     document.getElementById("uploadArea").style.display = "block";
 
     setProgress(0, "上傳中...");
@@ -455,7 +591,7 @@
     }
   }
 
-      // ── 輪詢任務狀態 ────────────────────────────────────────
+  // ── 輪詢任務狀態 ────────────────────────────────────────
   function pollStatus() {
     clearInterval(pollTimer);
     pollTimer = setInterval(async () => {
@@ -475,7 +611,7 @@
           setProgress(5, "排隊等待處理...");
         } else if (data.status === "done") {
           clearInterval(pollTimer);
-          setProgress(100, "✓ 摘要生成完成！");
+          setProgress(100, "摘要生成完成");
           document.getElementById("uploadArea").style.display = "none";
           renderResult(data.result);
         } else if (data.status === "error") {
@@ -529,6 +665,7 @@
     indexData.forEach((seg, i) => {
       const item = document.createElement("div");
       item.className = "index-item";
+      item.setAttribute("role", "listitem");
       const badgeClass = { semantic: "badge-semantic", visual: "badge-visual", combined: "badge-combined" }[seg.type] || "badge-combined";
       const badgeLabel = { semantic: "語意", visual: "板書", combined: "雙模態" }[seg.type] || "雙模態";
       item.innerHTML = `
@@ -596,8 +733,8 @@
     wrap.style.display = "block";
     const label = document.getElementById("progressLabel");
     label.textContent = "處理失敗：" + message;
-    label.style.color = "#d63031";
-    document.getElementById("progressFill").style.background = "#d63031";
+    label.style.color = "var(--error)";
+    document.getElementById("progressFill").style.background = "var(--error)";
     document.getElementById("progressFill").style.width = "100%";
   }
 
@@ -606,7 +743,14 @@
     const wrap = document.getElementById("progressWrap");
     wrap.style.display = "block";
     document.getElementById("progressFill").style.width  = pct + "%";
-    document.getElementById("progressLabel").textContent = label;
+    const labelEl = document.getElementById("progressLabel");
+
+    // If completed, show with CSS checkmark
+    if (pct >= 100 && !label.startsWith("錯誤")) {
+      labelEl.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="3" style="flex-shrink:0" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg> ' + label;
+    } else {
+      labelEl.textContent = label;
+    }
 
     // 更新步驟指示器
     const stepPcts = [0, 10, 60, 90, 100];
