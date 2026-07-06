@@ -108,21 +108,78 @@ def test_srgan_fallback():
 
 
 def test_adaptive_fusion():
-    """測試多模態融合與滑動視窗"""
-    print("\n[Test] AdaptiveFusion...")
+    """測試多模態融合與滑動視窗（含自適應置信度加權）"""
+    print("\n[Test] AdaptiveFusion (v2)...")
     from src.fusion.adaptive_fusion import fuse_scores, semantic_sliding_window
 
     segments = make_fake_segments(10)
     for seg in segments:
         seg["s_text"] = np.random.uniform(0, 1)
         seg["s_visual"] = np.random.uniform(0, 1)
+        seg["visual_reliability"] = np.random.uniform(0.1, 1.0)
 
-    scores = [fuse_scores(s["s_text"], s["s_visual"]) for s in segments]
-    assert all(0.0 <= sc <= 1.0 for sc in scores), "融合分數超出範圍"
+    # 靜態加權（R=1.0）
+    static_scores = [fuse_scores(s["s_text"], s["s_visual"]) for s in segments]
+    # 自適應加權
+    adaptive_scores = [
+        fuse_scores(s["s_text"], s["s_visual"], visual_reliability=s["visual_reliability"])
+        for s in segments
+    ]
 
-    selected = semantic_sliding_window(segments, scores)
+    assert all(0.0 <= sc <= 1.0 for sc in static_scores), "靜態融合分數超出範圍"
+    assert all(0.0 <= sc <= 1.0 for sc in adaptive_scores), "自適應融合分數超出範圍"
+
+    # R=1.0 時自適應應等同靜態
+    seg_r1 = make_fake_segments(5)
+    for s in seg_r1:
+        s["s_text"] = 0.7
+        s["s_visual"] = 0.5
+    s1 = fuse_scores(0.7, 0.5, 0.5, 0.5, visual_reliability=1.0)
+    s2 = fuse_scores(0.7, 0.5, 0.5, 0.5)
+    assert abs(s1 - s2) < 1e-6, "R=1.0 時自適應應等同靜態加權"
+
+    selected = semantic_sliding_window(segments, adaptive_scores)
     assert isinstance(selected, list)
     print(f"  ✓ 融合正常，{len(segments)} 段 → 選取 {len(selected)} 段")
+    print(f"  ✓ 向後兼容確認：R=1.0 時 {s1:.4f} == {s2:.4f}")
+
+
+def test_visual_reliability():
+    """測試視覺可靠度估測器（v2 新增）"""
+    print("\n[Test] VisualReliabilityEstimator...")
+    from src.visual.visual_reliability import (
+        VisualReliabilityEstimator, ReliabilitySignals, build_signals_from_tracker_result
+    )
+
+    est = VisualReliabilityEstimator(ema_alpha=0.5)
+
+    # 測試高品質場景（手部穩定、板書密集）
+    good_signals = ReliabilitySignals(
+        hand_variance=5.0, hand_confidence=0.9,
+        text_density=0.7, hand_board_proximity=0.8,
+        hand_detected=True,
+    )
+    r_good = est.estimate(good_signals, base_beta=0.5)
+    assert 0.05 <= r_good.reliability <= 1.0
+    assert r_good.effective_beta <= 0.5
+
+    # 測試無手部偵測
+    est2 = VisualReliabilityEstimator()
+    bad_signals = ReliabilitySignals(hand_detected=False)
+    r_bad = est2.estimate(bad_signals, base_beta=0.5)
+    assert r_bad.effective_beta < r_good.effective_beta, "無手部時 β_eff 應低於有手部"
+
+    # 測試從 HandTracker 結果建構訊號
+    tracker_result = {"triggered": True, "roi_center": (320, 240), "s_visual_raw": 0.7}
+    signals = build_signals_from_tracker_result(
+        tracker_result, text_boxes=[(100, 100, 400, 300)], frame_w=640, frame_h=480
+    )
+    assert signals.hand_detected is True
+    assert signals.text_density > 0.0
+
+    print(f"  ✓ 高品質場景可靠度：{r_good.reliability:.3f}，β_eff：{r_good.effective_beta:.3f}")
+    print(f"  ✓ 無手部場景可靠度：{r_bad.reliability:.3f}，β_eff：{r_bad.effective_beta:.3f}")
+    print(f"  ✓ 主要影響因素：{r_good.dominant_factor}")
 
 
 def test_grid_search():
@@ -196,6 +253,7 @@ if __name__ == "__main__":
         test_hand_tracker,
         test_srgan_fallback,
         test_adaptive_fusion,
+        test_visual_reliability,
         test_grid_search,
         test_evaluator,
         test_video_exporter_index,

@@ -1,0 +1,234 @@
+{
+  "benchmark_meta": {
+    "timestamp": "2026-07-06T17:04:54.620587",
+    "n_simulations_per_domain": 10,
+    "note": "本結果為模擬數據，用於展示系統架構設計的效能預期。真實結果需以實際教學影片資料集驗證。"
+  },
+  "results": {
+    "blackboard": {
+      "config": {
+        "label": "傳統黑板",
+        "alpha": 0.55,
+        "beta": 0.45
+      },
+      "results": {
+        "unimodal": {
+          "recall": {
+            "mean": 0.7038,
+            "std": 0.228
+          },
+          "precision": {
+            "mean": 0.2425,
+            "std": 0.0869
+          },
+          "f1_score": {
+            "mean": 0.3566,
+            "std": 0.1212
+          },
+          "false_alarm_rate": {
+            "mean": 0.4077,
+            "std": 0.0703
+          },
+          "time_saving_rate": {
+            "mean": 0.3701,
+            "std": 0.0805
+          }
+        },
+        "multimodal": {
+          "recall": {
+            "mean": 0.6419,
+            "std": 0.2237
+          },
+          "precision": {
+            "mean": 0.2245,
+            "std": 0.0892
+          },
+          "f1_score": {
+            "mean": 0.326,
+            "std": 0.1152
+          },
+          "false_alarm_rate": {
+            "mean": 0.4082,
+            "std": 0.075
+          },
+          "time_saving_rate": {
+            "mean": 0.3996,
+            "std": 0.0614
+          }
+        },
+        "adaptive": {
+          "recall": {
+            "mean": 0.6752,
+            "std": 0.1851
+          },
+          "precision": {
+            "mean": 0.2592,
+            "std": 0.069
+          },
+          "f1_score": {
+            "mean": 0.3693,
+            "std": 0.0964
+          },
+          "false_alarm_rate": {
+            "mean": 0.3568,
+            "std": 0.0481
+          },
+          "time_saving_rate": {
+            "mean": 0.3888,
+            "std": 0.0858
+          }
+        }
+      }
+    },
+    "slides": {
+      "config": {
+        "label": "投影片講解",
+        "alpha": 0.65,
+        "beta": 0.35
+      },
+      "results": {
+        "unimodal": {
+          "recall": {
+            "mean": 0.8756,
+            "std": 0.144
+          },
+          "precision": {
+            "mean": 0.2681,
+            "std": 0.1183
+          },
+          "f1_score": {
+            "mean": 0.3968,
+            "std": 0.153
+          },
+          "false_alarm_rate": {
+            "mean": 0.4111,
+            "std": 0.1552
+          },
+          "time_saving_rate": {
+            "mean": 0.3414,
+            "std": 0.0626
+          }
+        },
+        "multimodal": {
+          "recall": {
+            "mean": 0.8464,
+            "std": 0.1601
+          },
+          "precision": {
+            "mean": 0.2599,
+            "std": 0.1088
+          },
+          "f1_score": {
+            "mean": 0.3825,
+            "std": 0.1421
+          },
+          "false_alarm_rate": {
+            "mean": 0.3881,
+            "std": 0.1109
+          },
+          "time_saving_rate": {
+            "mean": 0.3693,
+            "std": 0.0447
+          }
+        },
+        "adaptive": {
+          "recall": {
+            "mean": 0.8756,
+            "std": 0.144
+          },
+          "precision": {
+            "mean": 0.2696,
+            "std": 0.1248
+          },
+          "f1_score": {
+            "mean": 0.3977,
+            "std": 0.161
+          },
+          "false_alarm_rate": {
+            "mean": 0.4118,
+            "std": 0.154
+          },
+          "time_saving_rate": {
+            "mean": 0.344,
+            "std": 0.059
+          }
+        }
+      }
+    },
+    "challenging": {
+      "config": {
+        "label": "高反光/低對比",
+        "alpha": 0.75,
+        "beta": 0.25
+      },
+      "results": {
+        "unimodal": {
+          "recall": {
+            "mean": 0.8638,
+            "std": 0.096
+          },
+          "precision": {
+            "mean": 0.2745,
+            "std": 0.1037
+          },
+          "f1_score": {
+            "mean": 0.401,
+            "std": 0.1134
+          },
+          "false_alarm_rate": {
+            "mean": 0.4083,
+            "std": 0.0903
+          },
+          "time_saving_rate": {
+            "mean": 0.3486,
+            "std": 0.0714
+          }
+        },
+        "multimodal": {
+          "recall": {
+            "mean": 0.8271,
+            "std": 0.135
+          },
+          "precision": {
+            "mean": 0.2512,
+            "std": 0.0688
+          },
+          "f1_score": {
+            "mean": 0.3774,
+            "std": 0.091
+          },
+          "false_alarm_rate": {
+            "mean": 0.4068,
+            "std": 0.0909
+          },
+          "time_saving_rate": {
+            "mean": 0.3607,
+            "std": 0.0585
+          }
+        },
+        "adaptive": {
+          "recall": {
+            "mean": 0.8805,
+            "std": 0.1034
+          },
+          "precision": {
+            "mean": 0.2707,
+            "std": 0.0909
+          },
+          "f1_score": {
+            "mean": 0.4018,
+            "std": 0.1109
+          },
+          "false_alarm_rate": {
+            "mean": 0.4063,
+            "std": 0.0906
+          },
+          "time_saving_rate": {
+            "mean": 0.3466,
+            "std": 0.0723
+          }
+        }
+      }
+    }
+  }
+}

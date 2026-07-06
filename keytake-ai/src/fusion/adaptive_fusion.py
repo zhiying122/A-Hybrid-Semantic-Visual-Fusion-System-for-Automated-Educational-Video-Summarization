@@ -1,9 +1,27 @@
 """
 步驟四：多模態融合與動態剪輯
-- 適應性晚期融合：Score = α * S_text + β * S_visual
+─────────────────────────────────────────────────────────────────────
+v2 改進（回應評審意見）：新增「自適應置信度加權晚期融合」機制
+
+舊版（靜態加權）：
+    Score = α * S_text + β * S_visual
+
+v2（自適應置信度加權）：
+    β_eff  = β * R_visual          ← R_visual 由 VisualReliabilityEstimator 估算
+    α_eff  = 1 - β_eff             ← 語意權重自動補足，確保加總為 1
+    Score  = α_eff * S_text + β_eff * S_visual
+
+核心創新：
+  - 當手勢不在板書前（R_visual 低）→ 自動提高語意權重，避免雜訊污染摘要
+  - 當板書密度高且手部穩定（R_visual 高）→ 視覺權重自動提升，充分利用視覺資訊
+  - 理論依據：Uncertainty-aware Multimodal Fusion，以可觀測信號作為不確定性代理
+  - 與靜態加權完全相容：R_visual = 1.0 時退化為原始 α/β
+
+其他功能（同 v1）：
 - Grid Search 找最佳 α/β（在驗證集上）
 - 留一交叉驗證（Leave-One-Out）確保泛化性
 - 語意感知滑動視窗保持片段完整性
+
 對應計畫書 4.2 步驟四
 """
 
@@ -24,11 +42,36 @@ def _report(step: int, total: int, message: str):
         _progress_callback(step, total, message)
 
 
-def fuse_scores(s_text: float, s_visual: float, alpha: float = ALPHA, beta: float = BETA) -> float:
+def fuse_scores(
+    s_text: float,
+    s_visual: float,
+    alpha: float = ALPHA,
+    beta: float = BETA,
+    visual_reliability: float = 1.0,
+) -> float:
     """
-    適應性晚期融合公式：Score = α * S_text + β * S_visual
+    自適應置信度加權晚期融合（Adaptive Confidence-Weighted Late Fusion）
+
+    Args:
+        s_text:             語意分數 S_text ∈ [0, 1]
+        s_visual:           視覺分數 S_visual ∈ [0, 1]
+        alpha:              靜態語意權重 α（由 Grid Search 取得）
+        beta:               靜態視覺權重 β（由 Grid Search 取得）
+        visual_reliability: 視覺可靠度 R_visual ∈ [0, 1]
+                            （由 VisualReliabilityEstimator 估算；預設 1.0 = 靜態模式）
+
+    Returns:
+        融合分數 ∈ [0, 1]
+
+    融合公式：
+        β_eff  = β × R_visual
+        α_eff  = 1 − β_eff
+        Score  = α_eff × S_text + β_eff × S_visual
     """
-    return alpha * s_text + beta * s_visual
+    visual_reliability = float(np.clip(visual_reliability, 0.0, 1.0))
+    beta_eff = beta * visual_reliability
+    alpha_eff = 1.0 - beta_eff
+    return float(alpha_eff * s_text + beta_eff * s_visual)
 
 
 def grid_search_weights(

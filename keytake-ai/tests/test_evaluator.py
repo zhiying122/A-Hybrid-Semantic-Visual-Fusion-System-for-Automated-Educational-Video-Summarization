@@ -169,7 +169,7 @@ class TestEvaluateAllProperties:
 
         **Validates: Requirements 4.4**
         """
-        # Mock bert_score to avoid PyTorch dependency
+        # 正確 mock module-level bert_score_fn（v2 修復：evaluator 改為 module-level import）
         mock_f1 = MagicMock()
         mock_f1.mean.return_value = 0.75
 
@@ -184,10 +184,37 @@ class TestEvaluateAllProperties:
             f"evaluate_all result missing 'false_alarm_rate' key: {result.keys()}"
         assert 0.0 <= result['false_alarm_rate'] <= 1.0, \
             f"false_alarm_rate {result['false_alarm_rate']} out of range [0.0, 1.0]"
+    
+    @settings(max_examples=10)
+    @given(
+        selected=st.lists(segment_strategy(), min_size=0, max_size=3),
+        ground_truth=st.lists(gt_strategy(), min_size=0, max_size=3),
+        total_duration=st.floats(min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False),
+    )
+    def test_evaluate_all_contains_f1_score_key(self, selected, ground_truth, total_duration):
+        """
+        Property: evaluate_all() 回傳結果應包含 'f1_score' 鍵（v2 新增）
+
+        **Validates: Requirements 4.4**
+        """
+        mock_f1 = MagicMock()
+        mock_f1.mean.return_value = 0.75
+
+        with patch('src.fusion.evaluator.bert_score_fn', return_value=(None, None, mock_f1)):
+            from src.fusion.evaluator import evaluate_all
+            result = evaluate_all(
+                selected, ground_truth, total_duration,
+                ["summary"], ["reference"]
+            )
+
+        assert 'f1_score' in result, \
+            f"evaluate_all result missing 'f1_score' key: {result.keys()}"
+        assert 0.0 <= result['f1_score'] <= 1.0, \
+            f"f1_score {result['f1_score']} out of range [0.0, 1.0]"
 
     def test_evaluate_all_returns_all_expected_keys(self):
         """
-        Unit test: evaluate_all() 應回傳所有四個指標鍵
+        Unit test: evaluate_all() 應回傳所有六個指標鍵（v2 新增 precision、f1_score）
 
         **Validates: Requirements 4.4**
         """
@@ -204,7 +231,7 @@ class TestEvaluateAllProperties:
                 ["reference text"]
             )
 
-        expected_keys = {'recall', 'false_alarm_rate', 'bert_score', 'time_saving_rate'}
+        expected_keys = {'recall', 'precision', 'f1_score', 'false_alarm_rate', 'bert_score', 'time_saving_rate'}
         assert expected_keys == set(result.keys()), \
             f"Expected keys {expected_keys}, got {set(result.keys())}"
 

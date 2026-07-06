@@ -1,7 +1,13 @@
 """
-KeyTake AI - 主流程
+KeyTake AI - 主流程 (v2)
+─────────────────────────────────────────────────────────────────────
 整合四個步驟的完整 Pipeline：
-步驟一 → 步驟二 → 步驟三 (v2架構) → 步驟四 → 輸出摘要片段與效能評估
+步驟一 → 步驟二 → 步驟三 (v2架構) → 步驟四（自適應置信度加權融合）→ 輸出
+
+v2 改進（回應評審意見）：
+  - 整合 VisualReliabilityEstimator，動態評估視覺觀測的可靠度
+  - 手勢不在板書前時自動降低視覺權重，提升摘要品質
+  - 各幀 R_visual 記錄於 segment metadata，可供後續分析
 """
 
 import cv2
@@ -16,6 +22,10 @@ from src.visual.hand_tracker import HandTracker
 from src.visual.visual_scorer import compute_visual_score_v2, SRGANEnhancer
 from src.visual.text_detector import TextDetector
 from src.visual.sbert_calculator import SBERTCalculator
+from src.visual.visual_reliability import (
+    VisualReliabilityEstimator,
+    build_signals_from_tracker_result,
+)
 
 from src.fusion.adaptive_fusion import fuse_scores, semantic_sliding_window
 from src.fusion.evaluator import compute_false_alarm_rate, compute_recall, compute_time_saving_rate
@@ -79,6 +89,7 @@ def run_pipeline(
     text_detector = TextDetector()
     sbert_calculator = SBERTCalculator()
     srgan_enhancer = SRGANEnhancer()
+    reliability_estimator = VisualReliabilityEstimator()  # v2：視覺可靠度估測器
     
     cap = cv2.VideoCapture(paths["video"])
     fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
@@ -92,9 +103,25 @@ def run_pipeline(
         ret, frame = cap.read()
         if not ret:
             seg["s_visual"] = 0.0
+            seg["visual_reliability"] = 0.0
             continue
 
+        h, w = frame.shape[:2]
         event = tracker.process_frame(frame)
+
+        # v2：估算視覺可靠度
+        text_detection = text_detector.detect(frame)
+        reliability_signals = build_signals_from_tracker_result(
+            event,
+            text_boxes=text_detection.boxes,
+            frame_w=w,
+            frame_h=h,
+        )
+        reliability_result = reliability_estimator.estimate(
+            reliability_signals, base_beta=BETA
+        )
+        seg["visual_reliability"] = reliability_result.reliability
+
         if event["triggered"] and event["roi_center"]:
             roi = tracker.extract_roi(frame, event["roi_center"])
             
@@ -118,9 +145,18 @@ def run_pipeline(
     cap.release()
 
     # ── 步驟四：多模態融合 + 動態剪輯 ───────────────────
-    print("\n[Step 4] 多模態融合與動態剪輯...")
-    _progress(3, "融合語意與視覺分數...")
-    fusion_scores = [fuse_scores(seg["s_text"], seg["s_visual"], ALPHA, BETA) for seg in segments]
+    print("\n[Step 4] 多模態融合與動態剪輯（自適應置信度加權）...")
+    _progress(3, "融合語意與視覺分數（含可靠度加權）...")
+    fusion_scores = [
+        fuse_scores(
+            seg["s_text"],
+            seg["s_visual"],
+            ALPHA,
+            BETA,
+            visual_reliability=seg.get("visual_reliability", 1.0),
+        )
+        for seg in segments
+    ]
     selected = semantic_sliding_window(segments, fusion_scores)
 
     summary_duration = sum(s["end"] - s["start"] for s in selected)
