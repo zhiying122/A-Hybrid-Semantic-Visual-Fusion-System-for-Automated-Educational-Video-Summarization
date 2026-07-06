@@ -49,3 +49,16 @@ TARGET_TIME_SAVING_RATE = 0.50
 DOMAIN_BLACKBOARD = "blackboard"      # 傳統黑板
 DOMAIN_SLIDES = "slides"              # 投影片
 DOMAIN_CHALLENGING = "challenging"    # 高反光/低對比
+
+# ── v3：手勢意圖分類器 ──────────────────────────────
+GESTURE_SEQ_LEN = 20              # 輸入 GRU 的軌跡序列長度（幀數）
+GESTURE_INTENT_THRESHOLD = 0.7    # 觸發視覺分析的最低意圖分數
+GESTURE_MODEL_PATH = "weights/gesture_classifier.pth"
+
+# ── v3：LLM 語意評分 ────────────────────────────────
+# 透過 .env 設定：SEMANTIC_SCORER_MODE=llm / sbert / tfidf
+# LLM_BACKEND=openai / groq / ollama
+# OPENAI_API_KEY / GROQ_API_KEY / OLLAMA_URL
+
+# ── v3：多幀視覺取樣 ────────────────────────────────
+VISUAL_FRAMES_PER_SEGMENT = 3     # 每個片段取幾幀（頭/中/尾）

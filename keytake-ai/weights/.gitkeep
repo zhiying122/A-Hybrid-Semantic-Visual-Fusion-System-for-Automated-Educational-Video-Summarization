@@ -1,0 +1,2 @@
+# 訓練好的模型權重放這裡
+# gesture_classifier.pth — 手勢意圖分類器（執行 tools/train_gesture_classifier.py 產生）

@@ -44,3 +44,11 @@ openai==2.30.0                    # OpenAI API（WHISPER_MODE=remote 時使用�
 # ── 測試 ──────────────────────────────────────────────
 hypothesis==6.151.9               # Property-based testing
 pytest                            # 測試框架
+
+# ── v3 新增：手勢分類器訓練 ──────────────────────────
+scikit-learn==1.8.0               # 已存在，train 腳本還需要 classification_report
+
+# ── v3 新增：LLM 語意評分（選填，三選一）────────────
+# openai==2.30.0                  # 已存在，BACKEND=openai 時使用
+groq==0.30.0                      # Groq API（免費，llama3-8b-instant）
+# ollama 不需要 pip 套件，用 requests 即可（requests 已被其他套件間接依賴）

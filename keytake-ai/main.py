@@ -1,24 +1,32 @@
 """
-KeyTake AI - 主流程 (v2)
+KeyTake AI - 主流程 (v3)
 ─────────────────────────────────────────────────────────────────────
-整合四個步驟的完整 Pipeline：
-步驟一 → 步驟二 → 步驟三 (v2架構) → 步驟四（自適應置信度加權融合）→ 輸出
+v3 三大改進：
 
-v2 改進（回應評審意見）：
-  - 整合 VisualReliabilityEstimator，動態評估視覺觀測的可靠度
-  - 手勢不在板書前時自動降低視覺權重，提升摘要品質
-  - 各幀 R_visual 記錄於 segment metadata，可供後續分析
+1. 手勢意圖分類器
+   過去：只看手是否靜止（位移變異數）
+   現在：GRU 模型對食指軌跡分類為 5 種意圖，每種意圖有不同重要性分數
+         指引(1.0) > 強調(0.9) > 書寫(0.85) > 過渡(0.2) > 無手(0.1)
+
+2. LLM 語意評分
+   過去：TF-IDF + 60 句固定 prompt corpus
+   現在：LLM 對每段文字做深度語意理解，理解「為什麼這段重要」
+         支援 OpenAI / Groq / Ollama，自動偵測可用後端
+
+3. 多幀視覺取樣
+   過去：每個 Whisper 片段只看中間那一幀
+   現在：每段取 3 幀（頭 25%、中 50%、尾 75%），取視覺分數最大值，
+         避免中間幀剛好是教師走動的瞬間
 """
 
 import cv2
 import os
-import jieba  # 用於萃取關鍵字
+import jieba
+import numpy as np
 from src.preprocessing.preprocessor import preprocess
 from src.semantic.transcriber import transcribe
 from src.semantic.scorer import SemanticScorer
 from src.visual.hand_tracker import HandTracker
-
-# 引入 v2 視覺架構所需模組
 from src.visual.visual_scorer import compute_visual_score_v2, SRGANEnhancer
 from src.visual.text_detector import TextDetector
 from src.visual.sbert_calculator import SBERTCalculator
@@ -26,17 +34,18 @@ from src.visual.visual_reliability import (
     VisualReliabilityEstimator,
     build_signals_from_tracker_result,
 )
-
 from src.fusion.adaptive_fusion import fuse_scores, semantic_sliding_window
 from src.fusion.evaluator import compute_false_alarm_rate, compute_recall, compute_time_saving_rate
 from data.prompt_corpus.corpus import PROMPT_CORPUS
 from config import ALPHA, BETA, FUSION_SCORE_THRESHOLD
 
-# 嘗試載入目標誤報率，若未設定則預設 0.25 (25%)
 try:
     from config import TARGET_FALSE_ALARM_RATE
 except ImportError:
     TARGET_FALSE_ALARM_RATE = 0.25
+
+# 每個片段取幾幀做視覺分析（v3 新增）
+VISUAL_FRAMES_PER_SEGMENT = 3
 
 
 def extract_keywords(text: str) -> list[str]:
@@ -96,57 +105,84 @@ def run_pipeline(
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     total_duration = total_frames / fps
 
-    _progress(2, "執行多模態特徵提取...")
+    _progress(2, "執行多模態特徵提取（多幀取樣）...")
     for seg in segments:
-        mid_time = (seg["start"] + seg["end"]) / 2
-        cap.set(cv2.CAP_PROP_POS_MSEC, mid_time * 1000)
-        ret, frame = cap.read()
-        if not ret:
+        seg_start = seg["start"]
+        seg_end = seg["end"]
+
+        # v3 多幀取樣：取片段的 25% / 50% / 75% 三個時間點
+        sample_times = [
+            seg_start + (seg_end - seg_start) * ratio
+            for ratio in [0.25, 0.50, 0.75]
+        ]
+
+        frame_scores = []
+        best_event = None
+
+        for sample_time in sample_times:
+            cap.set(cv2.CAP_PROP_POS_MSEC, sample_time * 1000)
+            ret, frame = cap.read()
+            if not ret:
+                continue
+
+            h, w = frame.shape[:2]
+            event = tracker.process_frame(frame)
+
+            # 用手勢意圖分數計算視覺可靠度
+            text_detection = text_detector.detect(frame)
+            reliability_signals = build_signals_from_tracker_result(
+                event,
+                text_boxes=text_detection.boxes,
+                frame_w=w,
+                frame_h=h,
+            )
+            reliability_result = reliability_estimator.estimate(
+                reliability_signals, base_beta=BETA
+            )
+
+            if event["triggered"] and event["roi_center"]:
+                roi = tracker.extract_roi(frame, event["roi_center"])
+                asr_keywords = extract_keywords(seg["text"])
+                v_result = compute_visual_score_v2(
+                    roi=roi,
+                    hand_center=event["roi_center"],
+                    asr_keywords=asr_keywords,
+                    frame=frame,
+                    text_detector=text_detector,
+                    sbert_calculator=sbert_calculator,
+                    srgan_enhancer=srgan_enhancer,
+                )
+                # v3：用手勢意圖分數調整視覺分數
+                intent_score = event.get("intent_score", 1.0)
+                adjusted_score = v_result.score * intent_score
+            else:
+                # 未觸發時也用意圖分數（比純變異數更準確）
+                adjusted_score = event.get("intent_score", event["s_visual_raw"])
+                reliability_result.reliability = reliability_result.reliability * 0.5
+
+            frame_scores.append({
+                "visual_score": adjusted_score,
+                "reliability": reliability_result.reliability,
+                "gesture_label": event.get("gesture_result", {}).label
+                    if hasattr(event.get("gesture_result", None), "label") else "unknown",
+            })
+
+        if frame_scores:
+            # 取三幀中視覺分數最高的那幀作為代表
+            best = max(frame_scores, key=lambda x: x["visual_score"])
+            seg["s_visual"] = best["visual_score"]
+            seg["visual_reliability"] = best["reliability"]
+            seg["gesture_label"] = best.get("gesture_label", "unknown")
+        else:
             seg["s_visual"] = 0.0
             seg["visual_reliability"] = 0.0
-            continue
-
-        h, w = frame.shape[:2]
-        event = tracker.process_frame(frame)
-
-        # v2：估算視覺可靠度
-        text_detection = text_detector.detect(frame)
-        reliability_signals = build_signals_from_tracker_result(
-            event,
-            text_boxes=text_detection.boxes,
-            frame_w=w,
-            frame_h=h,
-        )
-        reliability_result = reliability_estimator.estimate(
-            reliability_signals, base_beta=BETA
-        )
-        seg["visual_reliability"] = reliability_result.reliability
-
-        if event["triggered"] and event["roi_center"]:
-            roi = tracker.extract_roi(frame, event["roi_center"])
-            
-            # 【關鍵修正】萃取關鍵字，而非丟入一整句話
-            asr_keywords = extract_keywords(seg["text"])
-            
-            # 【關鍵修正】使用 v2 API 並傳入已實例化的模型
-            v_result = compute_visual_score_v2(
-                roi=roi,
-                hand_center=event["roi_center"],
-                asr_keywords=asr_keywords,
-                frame=frame,
-                text_detector=text_detector,
-                sbert_calculator=sbert_calculator,
-                srgan_enhancer=srgan_enhancer
-            )
-            seg["s_visual"] = v_result.score
-        else:
-            seg["s_visual"] = event["s_visual_raw"]
+            seg["gesture_label"] = "無手部"
 
     cap.release()
 
     # ── 步驟四：多模態融合 + 動態剪輯 ───────────────────
-    print("\n[Step 4] 多模態融合與動態剪輯（自適應置信度加權）...")
-    _progress(3, "融合語意與視覺分數（含可靠度加權）...")
+    print("\n[Step 4] 多模態融合（語意 × 視覺 × 手勢意圖）...")
+    _progress(3, "三模態融合分數計算中...")
     fusion_scores = [
         fuse_scores(
             seg["s_text"],
@@ -162,9 +198,16 @@ def run_pipeline(
     summary_duration = sum(s["end"] - s["start"] for s in selected)
     time_saving_rate = 1 - (summary_duration / total_duration) if total_duration > 0 else 0
 
+    # 手勢分布統計（供分析用）
+    gesture_counts: dict = {}
+    for seg in segments:
+        label = seg.get("gesture_label", "unknown")
+        gesture_counts[label] = gesture_counts.get(label, 0) + 1
+
     print(f"\n[完成] 原始時長: {total_duration:.1f}s → 摘要時長: {summary_duration:.1f}s")
     print(f"       時間節省率: {time_saving_rate:.1%}")
     print(f"       選取片段數: {len(selected)}")
+    print(f"       手勢分布: {gesture_counts}")
 
     # ── 效能評估指標 (Requirement 4) ───────────────────
     result_dict = {
