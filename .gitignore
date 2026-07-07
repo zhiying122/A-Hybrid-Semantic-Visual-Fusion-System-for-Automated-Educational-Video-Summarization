@@ -30,6 +30,9 @@ models/
 *.bin
 *.safetensors
 
+# 例外：手勢分類器訓練好的模型（小檔案，可以一起版控）
+!keytake-ai/weights/gesture_classifier.pth
+
 # 標註與輸出結果
 annotations/
 output/

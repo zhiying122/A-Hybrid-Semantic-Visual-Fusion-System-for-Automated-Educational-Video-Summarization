@@ -68,6 +68,7 @@ def collect_from_video(
     video_path: str,
     auto_label: bool = False,
     sample_interval_sec: float = 0.5,
+    checkpoint_every: int = 50,
 ) -> list[dict]:
     """
     從單部影片收集手勢軌跡資料。
@@ -92,6 +93,7 @@ def collect_from_video(
     samples = []
     frame_idx = 0
     last_sample_time = -sample_interval_sec
+    last_checkpoint_count = 0  # 上次存檔時的樣本數
 
     while True:
         ret, frame = cap.read()
@@ -148,6 +150,14 @@ def collect_from_video(
 
         label_name = INTENT_LABELS[GestureIntent(label)]
         print(f"  t={current_time:.1f}s  標籤: {label_name}  累計: {len(samples)}")
+
+        # 定期存檔（checkpoint）
+        if len(samples) - last_checkpoint_count >= checkpoint_every:
+            dataset = load_dataset()
+            dataset.extend(samples)
+            save_dataset(dataset)
+            print(f"    [Checkpoint] 已存檔 {len(samples)} 筆新資料")
+            last_checkpoint_count = len(samples)
 
     cap.release()
     cv2.destroyAllWindows()
@@ -218,12 +228,13 @@ if __name__ == "__main__":
     dataset = load_dataset()
     print(f"[Dataset] 現有資料：{len(dataset)} 筆")
 
-    # 收集影片路徑
+    # 收集影片路徑（支援遞迴搜尋子資料夾）
     video_paths = []
     if os.path.isdir(args.video):
-        for fname in sorted(os.listdir(args.video)):
-            if fname.lower().endswith(('.mp4', '.avi', '.mov', '.mkv', '.webm')):
-                video_paths.append(os.path.join(args.video, fname))
+        for root, dirs, files in os.walk(args.video):
+            for fname in sorted(files):
+                if fname.lower().endswith(('.mp4', '.avi', '.mov', '.mkv', '.webm')):
+                    video_paths.append(os.path.join(root, fname))
     else:
         video_paths = [args.video]
 

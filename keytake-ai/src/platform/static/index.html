@@ -427,6 +427,12 @@
             <span class="step-label">融合剪輯</span>
           </div>
         </div>
+        <div style="text-align:center;margin-top:12px">
+          <button class="btn btn-outline" id="btnCancel" onclick="resetUI()" style="font-size:.75rem;padding:6px 16px;display:none" aria-label="取消處理並重新上傳">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            取消並重新上傳
+          </button>
+        </div>
       </div>
     </section>
 
@@ -440,6 +446,10 @@
         <button class="btn btn-primary" id="btnSummary" onclick="switchVideo('summary')" aria-label="播放摘要影片">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
           摘要影片
+        </button>
+        <button class="btn btn-outline" id="btnReset" onclick="resetUI()" aria-label="重新上傳影片" style="flex:0.6">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          重新上傳
         </button>
       </div>
     </div>
@@ -578,6 +588,7 @@
     document.getElementById("uploadArea").style.display = "block";
 
     setProgress(0, "上傳中...");
+    document.getElementById("btnCancel").style.display = "inline-flex";
     const form = new FormData();
     form.append("file", file);
 
@@ -613,6 +624,7 @@
           clearInterval(pollTimer);
           setProgress(100, "摘要生成完成");
           document.getElementById("uploadArea").style.display = "none";
+          document.getElementById("btnCancel").style.display = "none";
           renderResult(data.result);
         } else if (data.status === "error") {
           clearInterval(pollTimer);
@@ -697,6 +709,51 @@
 
     // 影片切換按鈕
     document.getElementById("videoSwitcher").style.display = "block";
+  }
+
+  // ── 重新上傳（重置整個 UI）────────────────────────────
+  function resetUI() {
+    // 停止輪詢
+    clearInterval(pollTimer);
+    taskId = null;
+    indexData = [];
+    originalVideoUrl = null;
+
+    // 重置影片播放器
+    const player = document.getElementById("videoPlayer");
+    player.pause();
+    player.removeAttribute("src");
+    player.style.display = "none";
+    document.getElementById("videoPlaceholder").style.display = "flex";
+
+    // 重置上傳區
+    document.getElementById("uploadArea").style.display = "block";
+    document.getElementById("fileInput").value = "";
+
+    // 隱藏所有結果區塊
+    document.getElementById("videoSwitcher").style.display = "none";
+    document.getElementById("statsArea").style.display = "none";
+    document.getElementById("durationCompare").style.display = "none";
+    document.getElementById("progressWrap").style.display = "none";
+    document.getElementById("btnCancel").style.display = "none";
+    document.getElementById("timeline").innerHTML = "";
+
+    // 重置索引面板
+    document.getElementById("indexList").innerHTML = '<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg><p>上傳影片後自動生成索引</p></div>';
+    document.getElementById("segCount").textContent = "--";
+    document.getElementById("btnDownload").disabled = true;
+    document.getElementById("btnExport").disabled = true;
+
+    // 重置進度條樣式
+    document.getElementById("progressLabel").style.color = "var(--dark-secondary)";
+    document.getElementById("progressFill").style.background = "linear-gradient(90deg, var(--primary), var(--primary-light))";
+    document.getElementById("progressFill").style.width = "0%";
+
+    // 重置步驟指示器
+    for (let i = 0; i < 4; i++) {
+      const el = document.getElementById(`pstep${i}`);
+      if (el) el.className = "progress-step";
+    }
   }
 
   // ── 影片切換（原始 / 摘要）────────────────────────────
