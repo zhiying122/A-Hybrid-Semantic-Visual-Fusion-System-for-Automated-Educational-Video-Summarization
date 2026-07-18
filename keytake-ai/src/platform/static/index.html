@@ -318,6 +318,47 @@
       text-align: center; padding: 48px 24px;
       color: var(--muted); font-size: 0.85rem;
     }
+    /* ── 課程摘要卡片 (v4 新增) ───────────────────────── */
+    .course-card {
+      background: linear-gradient(135deg, var(--primary) 0%, #8e77f7 100%);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 0 0 20px 0;
+      color: #fff;
+      display: none;
+      animation: fadeSlideIn .5s ease;
+    }
+    .course-card-title {
+      font-size: 1.05rem; font-weight: 700; margin-bottom: 8px;
+      display: flex; align-items: flex-start; gap: 8px;
+    }
+    .course-card-summary {
+      font-size: 0.82rem; opacity: .9; line-height: 1.6; margin-bottom: 12px;
+    }
+    .course-concepts {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .concept-tag {
+      background: rgba(255,255,255,.2);
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 0.72rem;
+      color: #fff;
+      font-weight: 500;
+    }
+    /* ── 片段索引項目（v4：加入 stage badge）────────────── */
+    .stage-badge {
+      font-size: 0.58rem; padding: 1px 6px; border-radius: 8px;
+      font-weight: 600; white-space: nowrap; flex-shrink: 0;
+      border: 1px solid transparent;
+    }
+    .stage-derivation { background: #fff3f3; color: #d63031; border-color: #ffb8b8; }
+    .stage-definition { background: #f0eeff; color: var(--primary); border-color: var(--primary-light); }
+    .stage-example    { background: #fff9e6; color: #fdcb6e; border-color: #ffeaa7; }
+    .stage-summary    { background: #e6f9f4; color: var(--success); border-color: #a8e6d8; }
+    .stage-qa         { background: #f0f8ff; color: #0984e3; border-color: #b2d8ff; }
+    .stage-transition { background: var(--bg); color: var(--muted); border-color: var(--border); }
     .empty-state svg { margin-bottom: 12px; opacity: .3; }
     .error-display {
       margin: 12px 20px;
@@ -452,6 +493,16 @@
           重新上傳
         </button>
       </div>
+    </div>
+
+    <!-- Course Summary Card (v4 新增) -->
+    <div id="courseCard" class="course-card" role="region" aria-label="課程摘要">
+      <div class="course-card-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <span id="courseTitle">課程分析</span>
+      </div>
+      <p class="course-card-summary" id="courseSummaryText"></p>
+      <div class="course-concepts" id="courseConceptsWrap" aria-label="關鍵概念"></div>
     </div>
 
     <!-- Stats Cards -->
@@ -640,11 +691,36 @@
 
   // ── 渲染結果 ────────────────────────────────────────────
   function renderResult(result) {
+    // v4：支援新格式（result.segments 直接是陣列或從舊格式讀取）
     indexData = result.segments || [];
     const total = result.original_duration || 1;
     const summary = result.summary_duration || 0;
 
-    // 統計卡片
+    // ── v4：渲染課程摘要卡片 ──────────────────────────────
+    const courseSummary = result.course_summary || {};
+    const courseCard = document.getElementById("courseCard");
+    if (courseSummary.title || courseSummary.summary) {
+      document.getElementById("courseTitle").textContent =
+        courseSummary.title || "課程摘要";
+      document.getElementById("courseSummaryText").textContent =
+        courseSummary.summary || "";
+
+      const conceptsWrap = document.getElementById("courseConceptsWrap");
+      conceptsWrap.innerHTML = "";
+      (courseSummary.key_concepts || []).forEach(concept => {
+        if (!concept) return;
+        const tag = document.createElement("span");
+        tag.className = "concept-tag";
+        tag.textContent = concept;
+        conceptsWrap.appendChild(tag);
+      });
+
+      courseCard.style.display = "block";
+    } else {
+      courseCard.style.display = "none";
+    }
+
+    // ── 統計卡片 ──────────────────────────────────────────
     document.getElementById("statsArea").style.display = "grid";
     document.getElementById("statsArea").classList.add("show");
     document.getElementById("statOriginal").textContent = (total / 60).toFixed(1);
@@ -653,10 +729,14 @@
     document.getElementById("statSegments").textContent = indexData.length;
     document.getElementById("segCount").textContent     = `${indexData.length} 個片段`;
 
-    // 時間軸
+    // ── 時間軸 ────────────────────────────────────────────
     const timeline = document.getElementById("timeline");
     timeline.innerHTML = "";
-    const typeClassMap = { semantic: "seg-semantic", visual: "seg-visual", combined: "seg-combined" };
+    const typeClassMap = {
+      semantic: "seg-semantic",
+      visual:   "seg-visual",
+      combined: "seg-combined"
+    };
     indexData.forEach(seg => {
       const div = document.createElement("div");
       div.className = "timeline-segment " + (typeClassMap[seg.type] || "seg-combined");
@@ -671,19 +751,43 @@
       timeline.appendChild(div);
     });
 
-    // 索引列表
+    // ── 索引列表（v4：加入教學階段 badge）────────────────
     const list = document.getElementById("indexList");
     list.innerHTML = "";
+
+    // 教學階段 badge 配置
+    const stageBadgeMap = {
+      derivation: { cls: "stage-derivation", label: "推導" },
+      definition: { cls: "stage-definition", label: "定義" },
+      example:    { cls: "stage-example",    label: "例題" },
+      summary:    { cls: "stage-summary",    label: "總結" },
+      qa:         { cls: "stage-qa",         label: "問答" },
+      transition: { cls: "stage-transition", label: "過渡" },
+    };
+    const typeBadgeMap = {
+      semantic: { cls: "badge-semantic", label: "語意" },
+      visual:   { cls: "badge-visual",   label: "板書" },
+      combined: { cls: "badge-combined", label: "雙模態" },
+    };
+
     indexData.forEach((seg, i) => {
       const item = document.createElement("div");
       item.className = "index-item";
       item.setAttribute("role", "listitem");
-      const badgeClass = { semantic: "badge-semantic", visual: "badge-visual", combined: "badge-combined" }[seg.type] || "badge-combined";
-      const badgeLabel = { semantic: "語意", visual: "板書", combined: "雙模態" }[seg.type] || "雙模態";
+
+      const typeBadge = typeBadgeMap[seg.type] || typeBadgeMap.combined;
+      const stageBadge = stageBadgeMap[seg.stage] || stageBadgeMap[seg.type] || null;
+
+      // 教學階段 badge（v4 新增）
+      const stageBadgeHtml = stageBadge
+        ? `<span class="stage-badge ${stageBadge.cls}" title="教學階段">${stageBadge.label}</span>`
+        : "";
+
       item.innerHTML = `
         <span class="index-time">${seg.timestamp}</span>
-        <span class="index-label">${seg.label}</span>
-        <span class="seg-badge ${badgeClass}">${badgeLabel}</span>
+        <span class="index-label">${seg.label || seg.timestamp}</span>
+        ${stageBadgeHtml}
+        <span class="seg-badge ${typeBadge.cls}">${typeBadge.label}</span>
       `;
       item.addEventListener("click", () => {
         document.querySelectorAll(".index-item").forEach(el => el.classList.remove("active"));
@@ -695,19 +799,21 @@
       list.appendChild(item);
     });
 
-    // 啟用按鈕
+    // ── 啟用按鈕 ──────────────────────────────────────────
     document.getElementById("btnDownload").disabled = false;
     document.getElementById("btnExport").disabled   = false;
 
-    // 時長對比條
+    // ── 時長對比條 ────────────────────────────────────────
     const durCompare = document.getElementById("durationCompare");
     durCompare.style.display = "block";
     document.getElementById("durOrigLabel").textContent = (total / 60).toFixed(1) + " min";
     document.getElementById("durSummLabel").textContent = (summary / 60).toFixed(1) + " min";
     const pctWidth = total > 0 ? Math.round((summary / total) * 100) : 0;
-    setTimeout(() => { document.getElementById("durSummaryBar").style.width = pctWidth + "%"; }, 100);
+    setTimeout(() => {
+      document.getElementById("durSummaryBar").style.width = pctWidth + "%";
+    }, 100);
 
-    // 影片切換按鈕
+    // ── 影片切換按鈕 ──────────────────────────────────────
     document.getElementById("videoSwitcher").style.display = "block";
   }
 
@@ -730,7 +836,8 @@
     document.getElementById("uploadArea").style.display = "block";
     document.getElementById("fileInput").value = "";
 
-    // 隱藏所有結果區塊
+    // 隱藏所有結果區塊（v4：加入 courseCard）
+    document.getElementById("courseCard").style.display = "none";
     document.getElementById("videoSwitcher").style.display = "none";
     document.getElementById("statsArea").style.display = "none";
     document.getElementById("durationCompare").style.display = "none";

@@ -134,7 +134,6 @@ def _run_sync(task_id: str, video_path: str):
 
     def update_progress(step_idx: int, message: str = ""):
         elapsed = time.time() - start_time
-        # 預估總時間（根據已完成比例推算）
         done_ratio = sum(r for _, r in STEPS[:step_idx])
         if done_ratio > 0:
             estimated_total = elapsed / done_ratio
@@ -170,20 +169,38 @@ def _run_sync(task_id: str, video_path: str):
         else:
             summary_path = None
 
-        # 匯出索引
+        # 匯出索引（v4：傳入 course_summary）
         index_path = os.path.join(out_dir, "index.json")
-        export_index(result["segments"], index_path)
+        export_index(
+            result["segments"],
+            index_path,
+            course_summary=result.get("course_summary"),
+        )
+
+        # 讀取索引（v4：新格式 {"segments": [...], "course_summary": {...}}）
+        index_data = {"segments": [], "course_summary": {}}
+        if os.path.exists(index_path):
+            with open(index_path, encoding="utf-8") as f:
+                raw_index = json.load(f)
+            # 相容舊格式（純陣列）與新格式（物件含 segments 鍵）
+            if isinstance(raw_index, list):
+                index_data = {"segments": raw_index, "course_summary": {}}
+            elif isinstance(raw_index, dict):
+                index_data = raw_index
 
         task_store[task_id] = {
             "status": "done",
             "result": {
-                "segments": json.load(open(index_path, encoding="utf-8")) if os.path.exists(index_path) else [],
+                "segments":        index_data.get("segments", []),
+                "course_summary":  index_data.get("course_summary", {}),
                 "original_duration": result["original_duration"],
-                "summary_duration": result["summary_duration"],
-                "time_saving_rate": result["time_saving_rate"],
+                "summary_duration":  result["summary_duration"],
+                "time_saving_rate":  result["time_saving_rate"],
             }
         }
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         task_store[task_id] = {"status": "error", "error": str(e)}
     finally:
         if os.path.exists(video_path):

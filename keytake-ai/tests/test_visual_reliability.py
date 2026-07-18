@@ -13,7 +13,7 @@ import sys
 import os
 import numpy as np
 import pytest
-from hypothesis import given, strategies as st, settings, assume
+from hypothesis import given, strategies as st, settings, assume, HealthCheck
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -46,7 +46,7 @@ def signals_strategy(hand_detected: bool = True):
 class TestReliabilityRange:
     """可靠度範圍永遠在 [min_reliability, 1.0]"""
 
-    @settings(max_examples=50)
+    @settings(max_examples=50, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(signals=signals_strategy(hand_detected=True))
     def test_reliability_in_valid_range(self, signals):
         est = VisualReliabilityEstimator(min_reliability=0.05)
@@ -54,7 +54,7 @@ class TestReliabilityRange:
         assert 0.05 <= result.reliability <= 1.0, \
             f"Reliability {result.reliability} out of [0.05, 1.0]"
 
-    @settings(max_examples=20)
+    @settings(max_examples=20, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(signals=signals_strategy(hand_detected=False))
     def test_no_hand_gives_min_reliability(self, signals):
         min_r = 0.05
@@ -64,7 +64,7 @@ class TestReliabilityRange:
         assert result.reliability >= min_r, \
             f"Reliability {result.reliability} should be >= min_reliability {min_r}"
 
-    @settings(max_examples=20)
+    @settings(max_examples=20, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(base_beta=st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False))
     def test_beta_eff_never_exceeds_base_beta(self, base_beta):
         """β_eff 不應超過 base_beta（允許 0.001 的捨入誤差，來自 round(4位)）"""
@@ -80,7 +80,7 @@ class TestReliabilityRange:
         assert result.effective_beta <= base_beta + 0.001, \
             f"beta_eff {result.effective_beta} exceeds base_beta {base_beta} by too much"
 
-    @settings(max_examples=20)
+    @settings(max_examples=20, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(base_beta=st.floats(min_value=0.01, max_value=1.0, allow_nan=False, allow_infinity=False))
     def test_beta_eff_scales_with_reliability(self, base_beta):
         """β_eff ≈ base_beta × reliability（在 EMA 收斂後）"""

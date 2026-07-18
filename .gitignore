@@ -25,6 +25,7 @@ env/
 
 # 模型快取（Whisper / SBERT 下載的模型）
 .cache/
+cache/
 models/
 *.pt
 *.bin
@@ -32,10 +33,12 @@ models/
 
 # 例外：手勢分類器訓練好的模型（小檔案，可以一起版控）
 !keytake-ai/weights/gesture_classifier.pth
+!keytake-ai/weights/mlp_fusion.pth
 
 # 標註與輸出結果
 annotations/
 output/
+!keytake-ai/src/output/
 ground_truth.json
 transcript.json
 

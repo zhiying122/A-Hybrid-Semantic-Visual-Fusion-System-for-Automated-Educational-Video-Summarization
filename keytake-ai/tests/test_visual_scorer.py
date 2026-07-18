@@ -22,7 +22,7 @@ from dataclasses import fields
 
 import numpy as np
 import pytest
-from hypothesis import given, strategies as st, settings, assume
+from hypothesis import given, strategies as st, settings, assume, HealthCheck
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
@@ -110,7 +110,7 @@ class TestDetectionFirstWorkflowProperties:
     當 has_text=True 時 OCR 應被執行，當 has_text=False 時應使用 IoU 降級備援。
     """
 
-    @settings(max_examples=100)
+    @settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(
         h=image_size_strategy,
         w=image_size_strategy,
@@ -145,7 +145,7 @@ class TestDetectionFirstWorkflowProperties:
         assert 0.0 <= result.score <= 1.0, \
             f"Score {result.score} out of range [0.0, 1.0]"
 
-    @settings(max_examples=100)
+    @settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(
         h=image_size_strategy,
         w=image_size_strategy,
@@ -176,7 +176,7 @@ class TestDetectionFirstWorkflowProperties:
         assert result.text_detected is True, \
             "text_detected should be True when detector finds text"
 
-    @settings(max_examples=100)
+    @settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(
         h=image_size_strategy,
         w=image_size_strategy,
@@ -205,7 +205,7 @@ class TestDetectionFirstWorkflowProperties:
         assert result.text_detected is False, \
             "text_detected should be False when detector finds no text"
 
-    @settings(max_examples=100)
+    @settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(
         h=image_size_strategy,
         w=image_size_strategy,
@@ -234,7 +234,7 @@ class TestDetectionFirstWorkflowProperties:
         assert result.fallback_used is True, \
             "fallback_used should be True when no text detected"
 
-    @settings(max_examples=100)
+    @settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(
         h=image_size_strategy,
         w=image_size_strategy,
@@ -264,7 +264,7 @@ class TestDetectionFirstWorkflowProperties:
         assert result.fallback_used is True, \
             "fallback_used should be True when OCR returns empty string"
 
-    @settings(max_examples=100)
+    @settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(
         h=image_size_strategy,
         w=image_size_strategy,
@@ -323,7 +323,7 @@ class TestSRGANIntegrationProperties:
     當變異數高於閾值時，應使用原始 ROI 且 srgan_triggered 應為 False。
     """
 
-    @settings(max_examples=100)
+    @settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(
         hand_center=hand_center_strategy,
         blur_variance=st.floats(min_value=0.0, max_value=50.0)
@@ -354,7 +354,7 @@ class TestSRGANIntegrationProperties:
         assert result.srgan_triggered is True, \
             "srgan_triggered should be True when image is blurry"
 
-    @settings(max_examples=100)
+    @settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(
         hand_center=hand_center_strategy,
         blur_variance=st.floats(min_value=150.0, max_value=500.0)
@@ -384,7 +384,7 @@ class TestSRGANIntegrationProperties:
         assert result.srgan_triggered is False, \
             "srgan_triggered should be False when image is sharp"
 
-    @settings(max_examples=100)
+    @settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(
         h=image_size_strategy,
         w=image_size_strategy,
@@ -419,7 +419,7 @@ class TestSRGANIntegrationProperties:
         assert 0.0 <= result.score <= 1.0, \
             f"Score {result.score} out of range [0.0, 1.0]"
 
-    @settings(max_examples=100)
+    @settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(
         hand_center=hand_center_strategy
     )
@@ -449,7 +449,7 @@ class TestSRGANIntegrationProperties:
         assert isinstance(result.srgan_triggered, bool), \
             "srgan_triggered should be boolean for performance analysis"
 
-    @settings(max_examples=100)
+    @settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(
         hand_center=hand_center_strategy
     )

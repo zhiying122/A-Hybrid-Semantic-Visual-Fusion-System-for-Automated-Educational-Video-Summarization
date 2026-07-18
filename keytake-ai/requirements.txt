@@ -52,3 +52,13 @@ scikit-learn==1.8.0               # 已存在，train 腳本還需要 classifica
 # openai==2.30.0                  # 已存在，BACKEND=openai 時使用
 groq==0.30.0                      # Groq API（免費，llama3-8b-instant）
 # ollama 不需要 pip 套件，用 requests 即可（requests 已被其他套件間接依賴）
+
+# ── v5 新增：韻律特徵分析 ──────────────────────────────
+librosa==0.10.2                   # 音訊韻律特徵提取（語速/音量/音高/停頓）
+
+# ── v5 新增：CLIP 視覺-文字對齊 ──────────────────────
+transformers==4.52.0              # CLIP 模型載入（CLIPModel, CLIPProcessor）
+Pillow==11.2.1                    # 影像格式轉換（BGR→PIL）
+
+# ── v5 新增：MLP 融合模型 ──────────────────────────────
+# torch 已存在，MLP 融合模型直接使用 torch

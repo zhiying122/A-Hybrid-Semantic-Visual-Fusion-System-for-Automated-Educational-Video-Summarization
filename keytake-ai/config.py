@@ -62,3 +62,21 @@ GESTURE_MODEL_PATH = "weights/gesture_classifier.pth"
 
 # ── v3：多幀視覺取樣 ────────────────────────────────
 VISUAL_FRAMES_PER_SEGMENT = 3     # 每個片段取幾幀（頭/中/尾）
+
+# ── v5：韻律特徵分析 ────────────────────────────────
+PROSODIC_WEIGHT = 0.15            # 韻律分數在融合中的權重
+PROSODIC_SPEECH_RATE_WEIGHT = 0.3 # 語速子特徵權重
+PROSODIC_VOLUME_WEIGHT = 0.3      # 音量子特徵權重
+PROSODIC_PITCH_WEIGHT = 0.25      # 音高變化子特徵權重
+PROSODIC_PAUSE_WEIGHT = 0.15      # 停頓比例子特徵權重
+
+# ── v5：CLIP 視覺-文字對齊 ──────────────────────────
+CLIP_MODEL_NAME = "openai/clip-vit-base-patch32"
+CLIP_SCORE_THRESHOLD = 0.25       # CLIP 分數閾值（低於此值不採用）
+CLIP_WEIGHT = 0.3                 # CLIP 分數在視覺分數中的混合權重
+
+# ── v5：MLP 融合模型 ────────────────────────────────
+MLP_FUSION_MODEL_PATH = "weights/mlp_fusion.pth"
+MLP_FUSION_EPOCHS = 100           # 訓練輪數
+MLP_FUSION_LR = 0.001             # 學習率
+USE_MLP_FUSION = False            # 是否啟用 MLP 融合（需先訓練模型）

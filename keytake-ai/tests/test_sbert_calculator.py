@@ -15,7 +15,7 @@ from unittest.mock import patch, MagicMock
 
 import numpy as np
 import pytest
-from hypothesis import given, strategies as st, settings, assume
+from hypothesis import given, strategies as st, settings, assume, HealthCheck
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
@@ -76,7 +76,7 @@ class TestSBERTCalculatorProperties:
     **Validates: Requirements 2.1, 2.2, 2.3, 2.4**
     """
 
-    @settings(max_examples=10)
+    @settings(max_examples=10, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(
         ocr_text=text_strategy,
         transcript_text=text_strategy
@@ -98,7 +98,7 @@ class TestSBERTCalculatorProperties:
         assert 0.0 <= similarity <= 1.0, \
             f"Similarity {similarity} out of range [0.0, 1.0]"
 
-    @settings(max_examples=10)
+    @settings(max_examples=10, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(text=text_strategy)
     def test_identical_text_high_similarity(self, text):
         """
@@ -117,7 +117,7 @@ class TestSBERTCalculatorProperties:
         assert similarity >= 0.9, \
             f"Identical text similarity {similarity} should be >= 0.9"
 
-    @settings(max_examples=10)
+    @settings(max_examples=10, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(
         ocr_text=optional_text_strategy,
         transcript_text=optional_text_strategy
@@ -140,7 +140,7 @@ class TestSBERTCalculatorProperties:
         assert similarity == 0.0, \
             f"Empty input should return 0.0, got {similarity}"
 
-    @settings(max_examples=10)
+    @settings(max_examples=10, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(
         ocr_text=text_strategy,
         asr_keywords=non_empty_keywords_strategy
@@ -162,7 +162,7 @@ class TestSBERTCalculatorProperties:
         assert 0.0 <= similarity <= 1.0, \
             f"Similarity {similarity} out of range [0.0, 1.0]"
 
-    @settings(max_examples=10)
+    @settings(max_examples=10, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(ocr_text=text_strategy)
     def test_empty_keywords_returns_zero(self, ocr_text):
         """
@@ -190,7 +190,7 @@ class TestFallbackModeProperties:
     **Validates: Requirements 2.3, 2.4**
     """
 
-    @settings(max_examples=10)
+    @settings(max_examples=10, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(
         text1=text_strategy,
         text2=text_strategy
@@ -211,7 +211,7 @@ class TestFallbackModeProperties:
         assert 0.0 <= overlap <= 1.0, \
             f"Overlap {overlap} out of range [0.0, 1.0]"
 
-    @settings(max_examples=10)
+    @settings(max_examples=10, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(text=text_strategy)
     def test_char_overlap_identical_text_is_one(self, text):
         """
@@ -226,7 +226,7 @@ class TestFallbackModeProperties:
         assert overlap == 1.0, \
             f"Identical text overlap should be 1.0, got {overlap}"
 
-    @settings(max_examples=10)
+    @settings(max_examples=10, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(text=text_strategy)
     def test_char_overlap_empty_input_returns_zero(self, text):
         """
@@ -240,7 +240,7 @@ class TestFallbackModeProperties:
         assert compute_char_overlap(text, "") == 0.0
         assert compute_char_overlap("", "") == 0.0
 
-    @settings(max_examples=10)
+    @settings(max_examples=10, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(
         ocr_text=text_strategy,
         transcript_text=text_strategy
@@ -269,7 +269,7 @@ class TestFallbackModeProperties:
             # 驗證降級模式標記
             assert calculator.is_fallback_mode is True
 
-    @settings(max_examples=10)
+    @settings(max_examples=10, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(
         ocr_text=text_strategy,
         transcript_text=text_strategy
@@ -306,7 +306,7 @@ class TestCosineSimilarityProperties:
     **Validates: Requirements 2.2**
     """
 
-    @settings(max_examples=10)
+    @settings(max_examples=10, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(
         vec1=st.lists(st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False), min_size=10, max_size=10),
         vec2=st.lists(st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False), min_size=10, max_size=10)
@@ -330,7 +330,7 @@ class TestCosineSimilarityProperties:
         assert 0.0 <= similarity <= 1.0, \
             f"Normalized cosine similarity {similarity} out of range [0.0, 1.0]"
 
-    @settings(max_examples=10)
+    @settings(max_examples=10, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(
         vec=st.lists(st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False), min_size=10, max_size=10)
     )

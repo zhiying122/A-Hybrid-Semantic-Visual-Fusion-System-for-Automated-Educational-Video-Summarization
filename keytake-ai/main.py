@@ -1,22 +1,24 @@
 """
-KeyTake AI - 主流程 (v3)
+KeyTake AI - 主流程 (v5)
 ─────────────────────────────────────────────────────────────────────
-v3 三大改進：
+v5 升級：四模態融合 + 學習性融合 + 多元輸出
 
-1. 手勢意圖分類器
-   過去：只看手是否靜止（位移變異數）
-   現在：GRU 模型對食指軌跡分類為 5 種意圖，每種意圖有不同重要性分數
-         指引(1.0) > 強調(0.9) > 書寫(0.85) > 過渡(0.2) > 無手(0.1)
+新增功能：
+  - 韻律特徵分析（Prosodic Features）：語速、音量、音高變化、停頓比例作為第三模態
+  - CLIP 視覺-文字對齊：跳過 OCR 直接做圖文語意匹配，改善困難場域
+  - MLP 可學習融合：以監督式學習取代固定 α/β 公式（可選）
+  - LLM 評分快取：避免重複 API 呼叫，結果穩定且省費用
+  - 多元學習素材輸出：章節標題、Markdown 筆記、心智圖、Q&A 閃卡
 
-2. LLM 語意評分
-   過去：TF-IDF + 60 句固定 prompt corpus
-   現在：LLM 對每段文字做深度語意理解，理解「為什麼這段重要」
-         支援 OpenAI / Groq / Ollama，自動偵測可用後端
+v4 功能（保留）：
+  - LLM 對每段輸出：重要性分數 + 教學階段 + 一句摘要
+  - generate_course_summary()：全課脈絡分析
+  - export_index 使用 LLM 摘要句作為片段標籤
 
-3. 多幀視覺取樣
-   過去：每個 Whisper 片段只看中間那一幀
-   現在：每段取 3 幀（頭 25%、中 50%、尾 75%），取視覺分數最大值，
-         避免中間幀剛好是教師走動的瞬間
+v3 功能（保留）：
+  1. GRU 手勢意圖分類器：5 種意圖，每種有不同重要性分數
+  2. LLM 語意評分：支援 OpenAI / Groq / Ollama
+  3. 多幀視覺取樣：每段取 3 幀（頭25%/中50%/尾75%）
 """
 
 import cv2
@@ -26,16 +28,20 @@ import numpy as np
 from src.preprocessing.preprocessor import preprocess
 from src.semantic.transcriber import transcribe
 from src.semantic.scorer import SemanticScorer
+from src.semantic.prosodic_analyzer import ProsodicAnalyzer
 from src.visual.hand_tracker import HandTracker
 from src.visual.visual_scorer import compute_visual_score_v2, SRGANEnhancer
 from src.visual.text_detector import TextDetector
 from src.visual.sbert_calculator import SBERTCalculator
+from src.visual.clip_scorer import CLIPScorer
 from src.visual.visual_reliability import (
     VisualReliabilityEstimator,
     build_signals_from_tracker_result,
 )
 from src.fusion.adaptive_fusion import fuse_scores, semantic_sliding_window
+from src.fusion.mlp_fusion import fuse_scores_mlp
 from src.fusion.evaluator import compute_false_alarm_rate, compute_recall, compute_time_saving_rate
+from src.output.study_materials import StudyMaterialsGenerator
 from data.prompt_corpus.corpus import PROMPT_CORPUS
 from config import ALPHA, BETA, FUSION_SCORE_THRESHOLD
 
@@ -43,6 +49,13 @@ try:
     from config import TARGET_FALSE_ALARM_RATE
 except ImportError:
     TARGET_FALSE_ALARM_RATE = 0.25
+
+try:
+    from config import PROSODIC_WEIGHT, USE_MLP_FUSION, CLIP_WEIGHT
+except ImportError:
+    PROSODIC_WEIGHT = 0.15
+    USE_MLP_FUSION = False
+    CLIP_WEIGHT = 0.3
 
 # 每個片段取幾幀做視覺分析（v3 新增）
 VISUAL_FRAMES_PER_SEGMENT = 3
@@ -85,12 +98,27 @@ def run_pipeline(
     _progress(1, "Whisper 語音轉錄中...")
     segments = transcribe(paths["audio"])
     
-    _progress(1, "SBERT 語意評分中...")
+    _progress(1, "LLM 語意評分與教學結構分析中...")
     scorer = SemanticScorer(prompt_corpus=PROMPT_CORPUS)
     segments = scorer.score(segments)
 
+    # v4 新增：全課結構分析（LLM 模式才有意義，SBERT 模式也會回傳基本結果）
+    _progress(1, "全課脈絡分析中...")
+    course_summary = scorer.generate_course_summary(segments)
+    if course_summary.get("title"):
+        print(f"\n[課程分析] 標題：{course_summary['title']}")
+        print(f"           摘要：{course_summary.get('summary', '')[:80]}")
+
+    # ── 步驟 2.5：韻律特徵提取（v5 新增）─────────────────────
+    print("\n[Step 2.5] 韻律特徵提取...")
+    _progress(1, "分析語速、音量、音高變化...")
+    prosodic_analyzer = ProsodicAnalyzer()
+    segments = prosodic_analyzer.analyze_segments(paths["audio"], segments)
+    avg_prosodic = np.mean([seg.get("s_prosodic", 0.5) for seg in segments])
+    print(f"           平均韻律分數：{avg_prosodic:.3f}")
+
     # ── 步驟三：視覺特徵提取（逐幀分析 - v2架構）────────────────
-    print("\n[Step 3] 視覺特徵提取 (v2 架構)...")
+    print("\n[Step 3] 視覺特徵提取 (v2 架構 + CLIP 跨模態對齊)...")
     _progress(2, "初始化視覺與語意模型...")
     
     # 【關鍵修正】在迴圈外初始化所有模型，避免 Memory Out
@@ -98,6 +126,7 @@ def run_pipeline(
     text_detector = TextDetector()
     sbert_calculator = SBERTCalculator()
     srgan_enhancer = SRGANEnhancer()
+    clip_scorer = CLIPScorer.get_instance()  # v5：CLIP 跨模態對齊
     reliability_estimator = VisualReliabilityEstimator()  # v2：視覺可靠度估測器
     
     cap = cv2.VideoCapture(paths["video"])
@@ -152,9 +181,18 @@ def run_pipeline(
                     sbert_calculator=sbert_calculator,
                     srgan_enhancer=srgan_enhancer,
                 )
+                # v5：CLIP 跨模態對齊分數（與 OCR→SBERT 路徑互補）
+                clip_score = clip_scorer.compute_clip_score_with_keywords(
+                    roi, asr_keywords
+                ) if clip_scorer.is_available else 0.0
+                # 混合 CLIP 與 OCR→SBERT 分數
+                combined_visual = (
+                    (1 - CLIP_WEIGHT) * v_result.score + CLIP_WEIGHT * clip_score
+                ) if clip_score > 0 else v_result.score
+
                 # v3：用手勢意圖分數調整視覺分數
                 intent_score = event.get("intent_score", 1.0)
-                adjusted_score = v_result.score * intent_score
+                adjusted_score = combined_visual * intent_score
             else:
                 # 未觸發時也用意圖分數（比純變異數更準確）
                 adjusted_score = event.get("intent_score", event["s_visual_raw"])
@@ -181,18 +219,33 @@ def run_pipeline(
     cap.release()
 
     # ── 步驟四：多模態融合 + 動態剪輯 ───────────────────
-    print("\n[Step 4] 多模態融合（語意 × 視覺 × 手勢意圖）...")
-    _progress(3, "三模態融合分數計算中...")
-    fusion_scores = [
-        fuse_scores(
-            seg["s_text"],
-            seg["s_visual"],
-            ALPHA,
-            BETA,
-            visual_reliability=seg.get("visual_reliability", 1.0),
-        )
-        for seg in segments
-    ]
+    print("\n[Step 4] 多模態融合（語意 × 視覺 × 手勢意圖 × 韻律）...")
+    _progress(3, "四模態融合分數計算中...")
+
+    if USE_MLP_FUSION:
+        # v5：使用 MLP 可學習融合模型（需先訓練）
+        print("  [融合策略] MLP 可學習融合")
+        fusion_scores = fuse_scores_mlp(segments)
+    else:
+        # 原始解析式融合 + 韻律加權
+        fusion_scores = []
+        for seg in segments:
+            # 基礎融合分數（語意 × 視覺，含可靠度加權）
+            base_score = fuse_scores(
+                seg["s_text"],
+                seg["s_visual"],
+                ALPHA,
+                BETA,
+                visual_reliability=seg.get("visual_reliability", 1.0),
+            )
+            # v5：韻律加權（韻律分數高的片段獲得提升）
+            prosodic = seg.get("s_prosodic", 0.5)
+            # 韻律提升：base * (1 + PROSODIC_WEIGHT * (prosodic - 0.5) * 2)
+            # 韻律分數 0.5 時無影響，高於 0.5 提升，低於 0.5 壓低
+            prosodic_boost = 1.0 + PROSODIC_WEIGHT * (prosodic - 0.5) * 2
+            final_score = float(np.clip(base_score * prosodic_boost, 0.0, 1.0))
+            fusion_scores.append(final_score)
+
     selected = semantic_sliding_window(segments, fusion_scores)
 
     summary_duration = sum(s["end"] - s["start"] for s in selected)
@@ -214,18 +267,35 @@ def run_pipeline(
         "segments": selected,
         "summary_duration": summary_duration,
         "original_duration": total_duration,
-        "time_saving_rate": time_saving_rate
+        "time_saving_rate": time_saving_rate,
+        "course_summary": course_summary,          # v4：全課摘要供前端顯示
+        "gesture_distribution": gesture_counts,    # v4：手勢分布統計
     }
+
+    # v5：自動產生學習素材（章節標題、筆記、心智圖、閃卡）
+    try:
+        _progress(3, "產生學習素材中...")
+        materials_gen = StudyMaterialsGenerator()
+        materials_paths = materials_gen.export_all(
+            selected, course_summary, output_dir
+        )
+        result_dict["study_materials"] = materials_paths
+        print(f"\n[學習素材] 已匯出至 {output_dir}")
+    except Exception as e:
+        print(f"\n[學習素材] 產生失敗（不影響主流程）：{e}")
+        result_dict["study_materials"] = None
 
     if ground_truth:
         recall = compute_recall(selected, ground_truth)
         far = compute_false_alarm_rate(selected, ground_truth, total_duration)
+        tsr = compute_time_saving_rate(selected, total_duration)
         
         print(f"\n[效能評估指標]")
-        print(f"  - 重點召回率 (Recall): {recall:.1%}")
+        print(f"  - 重點召回率 (Recall):  {recall:.1%}")
         
-        far_status = "達成目標" if far < TARGET_FALSE_ALARM_RATE else "未達目標"
-        print(f"  - 誤報率 (FAR): {far:.1%} (< {TARGET_FALSE_ALARM_RATE:.1%} {far_status})")
+        far_status = "達成目標 ✓" if far < TARGET_FALSE_ALARM_RATE else "未達目標 ✗"
+        print(f"  - 誤報率 (FAR):         {far:.1%} (目標 < {TARGET_FALSE_ALARM_RATE:.1%}) {far_status}")
+        print(f"  - 時間節省率 (TSR):     {tsr:.1%}")
         
         result_dict["recall"] = recall
         result_dict["false_alarm_rate"] = far
