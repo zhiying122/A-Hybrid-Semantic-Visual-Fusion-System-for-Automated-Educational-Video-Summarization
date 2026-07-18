@@ -4,6 +4,7 @@
 對應計畫書 4.2 步驟三
 
 v2 新增：VisualReliabilityEstimator（視覺可靠度估測器）
+v5 新增：CLIPScorer（CLIP 跨模態對齊）
 """
 
 # 使用 lazy import 避免 import 時觸發模型下載
@@ -27,5 +28,14 @@ def __getattr__(name):
             VisualReliabilityEstimator, ReliabilitySignals, ReliabilityResult,
             build_signals_from_tracker_result,
         )
+        return locals()[name]
+    if name == "CLIPScorer":
+        from .clip_scorer import CLIPScorer
+        return CLIPScorer
+    if name in ("HandTracker",):
+        from .hand_tracker import HandTracker
+        return HandTracker
+    if name in ("GestureClassifier", "GestureIntent", "GestureResult"):
+        from .gesture_classifier import GestureClassifier, GestureIntent, GestureResult
         return locals()[name]
     raise AttributeError(f"module 'src.visual' has no attribute {name!r}")

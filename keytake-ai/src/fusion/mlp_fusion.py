@@ -24,9 +24,16 @@ import os
 import logging
 import numpy as np
 
-import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader, TensorDataset
+# PyTorch 為選用依賴（未啟用 MLP 融合時不需要）
+try:
+    import torch
+    import torch.nn as nn
+    from torch.utils.data import DataLoader, TensorDataset
+    TORCH_AVAILABLE = True
+    _nn_Module = nn.Module
+except ImportError:
+    TORCH_AVAILABLE = False
+    _nn_Module = object  # 讓 class 定義不報錯，但無法實際訓練
 
 # ── 設定值（從 config.py 匯入，若失敗則使用預設值）─────────────
 try:
@@ -50,7 +57,7 @@ logger = logging.getLogger(__name__)
 TEACHING_STAGES = ["definition", "derivation", "example", "summary", "transition", "qa"]
 
 
-class MLPFusionModel(nn.Module):
+class MLPFusionModel(_nn_Module):
     """
     可學習的 MLP 融合模型
 
@@ -321,7 +328,7 @@ def fuse_scores_mlp(
     """
     便利函數：載入 MLP 模型並回傳各片段的融合分數
 
-    若模型檔案不存在，自動退回 adaptive_fusion.fuse_scores 解析式公式，
+    若模型檔案不存在或 PyTorch 未安裝，自動退回 adaptive_fusion.fuse_scores 解析式公式，
     確保系統在未訓練時仍可正常運作。
 
     Args:
@@ -331,7 +338,7 @@ def fuse_scores_mlp(
     Returns:
         各片段的融合分數列表 ∈ [0, 1]
     """
-    if os.path.exists(model_path):
+    if TORCH_AVAILABLE and os.path.exists(model_path):
         # 使用已訓練的 MLP 模型
         trainer = MLPFusionTrainer(model_path=model_path)
         try:

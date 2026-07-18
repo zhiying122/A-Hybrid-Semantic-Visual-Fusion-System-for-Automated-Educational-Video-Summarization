@@ -239,10 +239,16 @@ def test_video_exporter_index():
     with open(tmp_path, encoding="utf-8") as f:
         index = json.load(f)
 
-    assert len(index) == len(segments)
-    assert all("timestamp" in item for item in index)
+    # v4 之後 export_index 輸出格式為 {"segments": [...], "course_summary": {...}}
+    if isinstance(index, dict):
+        index_items = index.get("segments", [])
+    else:
+        index_items = index
+
+    assert len(index_items) == len(segments)
+    assert all("timestamp" in item for item in index_items)
     os.remove(tmp_path)
-    print(f"  ✓ 索引匯出正常，共 {len(index)} 筆")
+    print(f"  ✓ 索引匯出正常，共 {len(index_items)} 筆")
 
 
 # ── 執行所有測試 ──────────────────────────────────────────────

@@ -42,7 +42,14 @@ from typing import Optional
 
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sentence_transformers import SentenceTransformer, util
+
+# sentence_transformers 為選用依賴（tfidf 模式不需要）
+try:
+    from sentence_transformers import SentenceTransformer, util
+    SENTENCE_TRANSFORMERS_AVAILABLE = True
+except ImportError:
+    SENTENCE_TRANSFORMERS_AVAILABLE = False
+
 from config import SBERT_MODEL, TFIDF_TOP_K, SBERT_SIMILARITY_THRESHOLD
 from src.semantic.llm_cache import LLMCache
 
@@ -223,6 +230,10 @@ class SemanticScorer:
 
     def _init_sbert(self):
         """初始化 SBERT"""
+        if not SENTENCE_TRANSFORMERS_AVAILABLE:
+            print("[SemanticScorer] sentence-transformers 未安裝，降級為 TF-IDF 模式")
+            self.mode = "tfidf"
+            return
         self.sbert = SentenceTransformer(SBERT_MODEL)
         self.corpus_embeddings = self.sbert.encode(self.prompt_corpus, convert_to_tensor=True)
 

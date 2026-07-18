@@ -3,15 +3,18 @@
 
 # ── 系統工具路徑（Windows 用戶若 PATH 未設定可在此指定）──────
 import os as _os
-import pytesseract as _pytesseract
 
 _ffmpeg_path = r"C:\ffmpeg-8.1-essentials_build\bin"
 if _os.path.exists(_ffmpeg_path):
     _os.environ["PATH"] = _ffmpeg_path + _os.pathsep + _os.environ.get("PATH", "")
 
-_tesseract_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-if _os.path.exists(_tesseract_path):
-    _pytesseract.pytesseract.tesseract_cmd = _tesseract_path
+try:
+    import pytesseract as _pytesseract
+    _tesseract_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    if _os.path.exists(_tesseract_path):
+        _pytesseract.pytesseract.tesseract_cmd = _tesseract_path
+except ImportError:
+    pass  # pytesseract 未安裝時跳過路徑設定，視覺模組自行處理降級
 
 # ── 步驟一：影音前處理 ──────────────────────────────
 AUDIO_SNR_THRESHOLD = 10.0        # SNR 低於此值才啟用頻譜減法
