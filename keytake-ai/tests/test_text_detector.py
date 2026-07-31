@@ -1,4 +1,4 @@
-﻿'''
+'''
 Text_Detector Unit Tests
 '''
 
