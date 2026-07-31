@@ -37,8 +37,8 @@ BLUR_THRESHOLD = 100.0            # Laplacian 變異數閾值（模糊偵測）
 SRGAN_SCALE = 4                   # 超解析度放大倍數
 
 # ── 步驟四：多模態融合 ──────────────────────────────
-ALPHA = 0.5                       # 語意權重 α（Grid Search 調校）
-BETA = 0.5                        # 視覺權重 β（α + β = 1）
+ALPHA = 0.6                       # 語意權重 α（Grid Search 調校結果）
+BETA = 0.4                        # 視覺權重 β（α + β = 1）
 FUSION_SCORE_THRESHOLD = 0.2      # 保留片段的最低融合分數（降低以選取更多片段）
 SLIDING_WINDOW_MIN_SEC = 10       # 語意感知滑動視窗最小保留秒數
 

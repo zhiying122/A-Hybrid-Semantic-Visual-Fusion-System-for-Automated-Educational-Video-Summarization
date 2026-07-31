@@ -116,6 +116,29 @@ def download_summary(task_id: str):
                         filename=f"keytake_summary_{task_id[:8]}.mp4")
 
 
+@app.get("/materials/{task_id}/{filename}")
+def get_study_material(task_id: str, filename: str):
+    """
+    取得學習素材檔案（v5 新增）
+    支援：study_notes.md, mind_map.json, flashcards.json, chapters.json
+    """
+    allowed = {"study_notes.md", "mind_map.json", "flashcards.json", "chapters.json"}
+    if filename not in allowed:
+        return JSONResponse(status_code=400, content={"error": f"不支援的檔案：{filename}"})
+    file_path = os.path.join(OUTPUT_DIR, task_id, filename)
+    if not os.path.exists(file_path):
+        return JSONResponse(status_code=404, content={"error": f"檔案尚未生成：{filename}"})
+    if filename.endswith(".json"):
+        import json
+        with open(file_path, encoding="utf-8") as f:
+            data = json.load(f)
+        return JSONResponse(content=data)
+    else:
+        with open(file_path, encoding="utf-8") as f:
+            content = f.read()
+        return JSONResponse(content={"content": content, "filename": filename})
+
+
 def _run_sync(task_id: str, video_path: str):
     """降級同步處理（Celery 未啟動時使用）"""
     from src.platform.task_store import task_store

@@ -1,0 +1,7 @@
+{
+  "best_alpha": 0.0,
+  "best_beta": 1.0,
+  "recall_on_validation": 1.0,
+  "total_segments": 28,
+  "total_gt": 12
+}

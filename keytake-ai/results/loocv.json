@@ -1,0 +1,25 @@
+{
+  "folds": [
+    {
+      "fold": 0,
+      "alpha": 0.0,
+      "beta": 1.0,
+      "recall": 1.0
+    },
+    {
+      "fold": 1,
+      "alpha": 0.0,
+      "beta": 1.0,
+      "recall": 1.0
+    },
+    {
+      "fold": 2,
+      "alpha": 0.0,
+      "beta": 1.0,
+      "recall": 1.0
+    }
+  ],
+  "avg_recall": 1.0,
+  "min_recall": 1.0,
+  "max_recall": 1.0
+}
