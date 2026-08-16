@@ -35,6 +35,10 @@ models/
 !keytake-ai/weights/gesture_classifier.pth
 !keytake-ai/weights/mlp_fusion.pth
 
+# 例外：MediaPipe 手部追蹤模型（約 12MB，允許離線使用）
+!keytake-ai/models/
+!keytake-ai/models/hand_landmarker.task
+
 # 標註與輸出結果
 annotations/
 output/

@@ -9,11 +9,21 @@ import ffmpeg
 import numpy as np
 from config import AUDIO_SNR_THRESHOLD, OUTPUT_FORMAT
 
-# Windows 上若 ffmpeg 不在 PATH，指定完整路徑
+# FFmpeg 路徑已由 config.py 的 _find_ffmpeg() 統一處理
+# 若 config.py 未被先 import，此處作為備援確保 ffmpeg 可用
 import os
-_FFMPEG_PATH = r"C:\ffmpeg-8.1-essentials_build\bin\ffmpeg.exe"
-if os.path.exists(_FFMPEG_PATH):
-    os.environ["PATH"] = os.path.dirname(_FFMPEG_PATH) + os.pathsep + os.environ.get("PATH", "")
+import shutil
+if not shutil.which("ffmpeg"):
+    _fallback_paths = [
+        r"C:\ffmpeg-8.1-essentials_build\bin",
+        r"C:\ffmpeg\bin",
+        "/usr/local/bin",
+        "/opt/homebrew/bin",
+    ]
+    for _p in _fallback_paths:
+        if os.path.exists(os.path.join(_p, "ffmpeg")) or os.path.exists(os.path.join(_p, "ffmpeg.exe")):
+            os.environ["PATH"] = _p + os.pathsep + os.environ.get("PATH", "")
+            break
 
 
 def convert_to_mp4(input_path: str, output_path: str, fps: int = 30) -> str:
@@ -71,22 +81,23 @@ def preprocess(input_path: str, output_dir: str) -> dict:
     # 動態判斷是否需要降噪
     snr = float("inf")
     try:
-        with open(audio_out, "rb") as f:
-            raw = f.read()[44:]  # 跳過 WAV header
-        if len(raw) > 0:
-            audio_samples = np.frombuffer(raw, dtype=np.int16).astype(np.float32)
+        import wave
+        with wave.open(audio_out, "rb") as wf:
+            n_frames = wf.getnframes()
+            raw_bytes = wf.readframes(n_frames)
+        if len(raw_bytes) > 0:
+            audio_samples = np.frombuffer(raw_bytes, dtype=np.int16).astype(np.float32)
             snr = float(estimate_snr(audio_samples))
             if snr < AUDIO_SNR_THRESHOLD:
                 print(f"[Preprocessor] SNR={snr:.1f}dB 過低，啟用頻譜減法")
                 cleaned = apply_spectral_subtraction(audio_samples, sr=16000)
-                # 寫回合法 WAV 格式（保留 header）
-                import wave
+                # 寫回合法 WAV 格式
                 cleaned_int16 = np.clip(cleaned, -32768, 32767).astype(np.int16)
-                with wave.open(audio_out, "wb") as wf:
-                    wf.setnchannels(1)
-                    wf.setsampwidth(2)
-                    wf.setframerate(16000)
-                    wf.writeframes(cleaned_int16.tobytes())
+                with wave.open(audio_out, "wb") as wf_out:
+                    wf_out.setnchannels(1)
+                    wf_out.setsampwidth(2)
+                    wf_out.setframerate(16000)
+                    wf_out.writeframes(cleaned_int16.tobytes())
             else:
                 print(f"[Preprocessor] SNR={snr:.1f}dB 正常，使用原始音訊")
         else:

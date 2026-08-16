@@ -102,10 +102,26 @@ class HandTracker:
         import urllib.request
         import os
 
-        model_path = "hand_landmarker.task"
-        if not os.path.exists(model_path):
+        # 模型搜尋順序：專案 models/ 目錄 → 當前目錄 → 自動下載
+        _project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        _model_candidates = [
+            os.path.join(_project_root, "models", "hand_landmarker.task"),
+            os.path.join(_project_root, "weights", "hand_landmarker.task"),
+            "hand_landmarker.task",
+        ]
+
+        model_path = None
+        for candidate in _model_candidates:
+            if os.path.exists(candidate):
+                model_path = candidate
+                break
+
+        if model_path is None:
+            # 預設下載至 models/ 目錄
+            model_path = _model_candidates[0]
+            os.makedirs(os.path.dirname(model_path), exist_ok=True)
             url = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
-            print("[HandTracker] 下載 MediaPipe 手部模型...")
+            print(f"[HandTracker] 下載 MediaPipe 手部模型至 {model_path}...")
             urllib.request.urlretrieve(url, model_path)
 
         base_options = mp_python.BaseOptions(model_asset_path=model_path)

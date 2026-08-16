@@ -46,7 +46,7 @@ hypothesis==6.151.9               # Property-based testing
 pytest                            # 測試框架
 
 # ── v3 新增：手勢分類器訓練 ──────────────────────────
-scikit-learn==1.8.0               # 已存在，train 腳本還需要 classification_report
+# scikit-learn 已列於上方，train 腳本使用 classification_report 等功能
 
 # ── v3 新增：LLM 語意評分（選填，三選一）────────────
 # openai==2.30.0                  # 已存在，BACKEND=openai 時使用

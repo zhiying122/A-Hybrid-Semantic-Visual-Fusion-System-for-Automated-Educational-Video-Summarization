@@ -58,7 +58,10 @@ def process_video_task(self, task_id: str, video_path: str) -> dict:
     index_path = os.path.join(out_dir, "index.json")
     export_index(result["segments"], index_path)
 
-    if os.path.exists(video_path):
+    # 保留原始影片，避免使用者檔案被意外刪除
+    # 僅清理系統暫存的副本（從 UPLOAD_DIR 複製的檔案）
+    upload_dir = os.path.join("tmp", "uploads")
+    if os.path.exists(video_path) and os.path.abspath(video_path).startswith(os.path.abspath(upload_dir)):
         os.remove(video_path)
 
     import json
