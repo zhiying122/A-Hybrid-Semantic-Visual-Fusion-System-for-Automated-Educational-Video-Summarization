@@ -340,13 +340,18 @@ class SemanticScorer:
             try:
                 result = self._query_llm_structured(text)
                 raw_score = float(np.clip(result.get("score", 0.5), 0.0, 1.0))
-                stage = result.get("stage", "transition")
-                if stage not in TEACHING_STAGE_TYPES:
-                    stage = "transition"
 
-                # 依教學階段加乘分數
-                boosted = raw_score * STAGE_WEIGHT.get(stage, 1.0)
-                scores[i] = float(np.clip(boosted, 0.0, 1.0))
+                # 只有 LLM 明確提供合法教學階段時，才套用階段加乘係數；
+                # 若 LLM 只回傳裸分數（無 stage），分數原樣通過，避免被誤乘權重。
+                explicit_stage = result.get("stage")
+                if explicit_stage in TEACHING_STAGE_TYPES:
+                    stage = explicit_stage
+                    boosted = raw_score * STAGE_WEIGHT.get(stage, 1.0)
+                    scores[i] = float(np.clip(boosted, 0.0, 1.0))
+                else:
+                    stage = "transition"
+                    scores[i] = raw_score
+
                 stages[i] = stage
                 summaries[i] = result.get("summary", text[:20])
             except Exception as e:
@@ -375,11 +380,11 @@ class SemanticScorer:
             # v5：存入快取
             self._cache.put(text, result)
             return result
-        # 降級：嘗試只提取數字
-        match = re.search(r"0?\.\d+|[01]", raw)
+        # 降級：嘗試只提取數字（僅接受 0~1 的小數或 0/1，避免誤抓中文中的數字）
+        match = re.search(r"0?\.\d+|\b[01]\b", raw)
+        # 不設定 stage，讓 _llm_scores 以「無明確階段」處理（分數原樣通過，不套加乘）
         fallback_result = {
             "score": float(match.group()) if match else 0.5,
-            "stage": "transition",
             "summary": text[:20],
         }
         self._cache.put(text, fallback_result)
@@ -450,21 +455,35 @@ class SemanticScorer:
 
 def _parse_json_safe(raw: str) -> dict:
     """
-    安全解析 LLM 輸出的 JSON 字串。
-    LLM 有時會在 JSON 前後加 ```json ... ``` 或其他雜訊。
+    安全解析 LLM 輸出的 JSON 字串，永遠回傳 dict。
+    LLM 有時會：
+      - 在 JSON 前後加 ```json ... ``` 或其他雜訊
+      - 直接回傳純數字（如 "0.85" 或 "1"）而非物件
+      - 回傳無法解析的自由文字
+    這些情況都會被正規化成 {"score": ...} 的 dict，避免呼叫端崩潰。
     """
     if not raw:
         return {}
-    # 嘗試直接解析
+
+    def _wrap(value):
+        """把 json.loads 的結果正規化為 dict。"""
+        if isinstance(value, dict):
+            return value
+        # 純數字 → 包成 score 欄位
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return {"score": float(value)}
+        return {}
+
+    # 嘗試直接解析（可能是 dict、數字、字串等）
     try:
-        return json.loads(raw)
+        return _wrap(json.loads(raw))
     except Exception:
         pass
     # 嘗試提取 {} 區塊
     match = re.search(r"\{[\s\S]*\}", raw)
     if match:
         try:
-            return json.loads(match.group())
+            return _wrap(json.loads(match.group()))
         except Exception:
             pass
     return {}

@@ -60,6 +60,20 @@ class TestTFIDFMode:
 
 class TestLLMMode:
 
+    @pytest.fixture(autouse=True)
+    def _isolated_llm_cache(self, tmp_path):
+        """為每個 LLM 測試使用獨立的臨時快取，避免讀到或污染正式快取，
+        確保測試結果具決定性。"""
+        from src.semantic import llm_cache as _llm_cache_mod
+        original_init = _llm_cache_mod.LLMCache.__init__
+
+        def _patched_init(self, cache_dir="cache", max_age_days=None, flush_every=10):
+            original_init(self, cache_dir=str(tmp_path / "cache"),
+                          max_age_days=max_age_days, flush_every=flush_every)
+
+        with patch.object(_llm_cache_mod.LLMCache, "__init__", _patched_init):
+            yield
+
     def _make_mock_completion(self, score_str: str):
         mock_choice = MagicMock()
         mock_choice.message.content = score_str

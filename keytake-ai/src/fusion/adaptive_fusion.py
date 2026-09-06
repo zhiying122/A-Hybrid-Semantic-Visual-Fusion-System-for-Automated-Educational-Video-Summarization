@@ -30,6 +30,12 @@ import numpy as np
 from itertools import product
 from config import ALPHA, BETA, FUSION_SCORE_THRESHOLD, SLIDING_WINDOW_MIN_SEC
 
+try:
+    from config import MAX_SUMMARY_RATIO, MIN_SUMMARY_SEC
+except ImportError:
+    MAX_SUMMARY_RATIO = 0.6
+    MIN_SUMMARY_SEC = 2.0
+
 # 全域進度回調（由 api.py 注入）
 _progress_callback = None
 
@@ -140,13 +146,56 @@ def leave_one_out_cv(all_videos: list[dict]) -> list[dict]:
 def semantic_sliding_window(
     segments: list[dict],
     scores: list[float],
-    min_sec: float = SLIDING_WINDOW_MIN_SEC
+    min_sec: float = SLIDING_WINDOW_MIN_SEC,
+    max_summary_ratio: float = MAX_SUMMARY_RATIO,
+    min_summary_sec: float = MIN_SUMMARY_SEC,
 ) -> list[dict]:
     """
-    語意感知滑動視窗：
-    鎖定重點時間點後，依 Whisper 斷句與畫面靜止向前後延伸，
-    確保板書推導與語句表達的完整性
+    語意感知滑動視窗（含「保證濃縮」機制）：
+    鎖定重點時間點後，依 Whisper 斷句向前後延伸，確保板書推導與語句完整性。
+
+    保證濃縮（不論影片長度，輸出必定比原片短）：
+      1. 短影片保護：若「原片 × max_summary_ratio」比 min_sec 還短，
+         自動縮小最小片段長度，避免單段就吃掉整部片。
+      2. 總長度上限：摘要總時長不得超過「原片 × max_summary_ratio」。
+         若門檻選段超出，依融合分數由高到低保留片段直到符合上限。
+      3. 保底輸出：若門檻導致一段都沒選到，至少保留分數最高的一段
+         （長度不超過上限，且不短於 min_summary_sec），確保永遠有輸出。
+
+    Args:
+        segments:          片段列表（需含 start/end），需與 scores 等長且時間遞增
+        scores:            各片段融合分數
+        min_sec:           滑動視窗最小保留秒數
+        max_summary_ratio: 摘要總時長上限比例（相對原片），∈ (0, 1)
+        min_summary_sec:   摘要最短輸出秒數（保底）
+
+    Returns:
+        選中片段列表（依時間排序），總時長 ≤ 原片 × max_summary_ratio
     """
+    if not segments:
+        return []
+
+    # 原片時長（以片段時間範圍估算）
+    original_duration = max(s["end"] for s in segments) - min(s["start"] for s in segments)
+    max_summary_ratio = float(np.clip(max_summary_ratio, 0.05, 0.95))
+    budget = original_duration * max_summary_ratio  # 允許的最大摘要時長
+
+    # 短影片保護：預算比最小片段還短時，縮小最小片段長度
+    effective_min_sec = min_sec
+    if budget < min_sec:
+        effective_min_sec = max(min_summary_sec, budget * 0.5)
+
+    def _make(idx_start: int, seg_start: float, seg_end: float) -> dict:
+        return {
+            "start": seg_start,
+            "end": seg_end,
+            "s_text": segments[idx_start].get("s_text", 0.0),
+            "s_visual": segments[idx_start].get("s_visual", 0.0),
+            "text": segments[idx_start].get("text", ""),
+            "score": scores[idx_start],
+        }
+
+    # ── 第一階段：門檻選段 + 語意延伸 ──────────────────
     selected = []
     i = 0
     while i < len(segments):
@@ -154,19 +203,61 @@ def semantic_sliding_window(
             start = segments[i]["start"]
             end = segments[i]["end"]
             j = i + 1
-            # 向後延伸：滿足最小時長 且 遇到低分片段才停
             while j < len(segments):
                 candidate_end = segments[j]["end"]
                 duration = candidate_end - start
-                if duration >= min_sec and scores[j] < FUSION_SCORE_THRESHOLD:
+                if duration >= effective_min_sec and scores[j] < FUSION_SCORE_THRESHOLD:
                     break
                 end = candidate_end
                 j += 1
-            selected.append({"start": start, "end": end,
-                              "s_text": segments[i].get("s_text", 0.0),
-                              "s_visual": segments[i].get("s_visual", 0.0),
-                              "text": segments[i].get("text", "")})
+            selected.append(_make(i, start, end))
             i = j
         else:
             i += 1
-    return selected
+
+    # ── 保底：一段都沒選到時，取分數最高的單段 ─────────
+    if not selected:
+        best_idx = int(np.argmax(scores))
+        start = segments[best_idx]["start"]
+        end = segments[best_idx]["end"]
+        # 目標長度：不超過預算，且保證嚴格短於原片（極短影片時取預算值）
+        target_len = min(max(min_summary_sec, end - start), budget)
+        target_len = min(target_len, original_duration * max_summary_ratio)
+        # 若單一原始片段就 ≥ 目標長度，直接截斷；否則向後補
+        if (end - start) >= target_len:
+            end = start + target_len
+        else:
+            k = best_idx + 1
+            while (end - start) < target_len and k < len(segments):
+                end = segments[k]["end"]
+                k += 1
+            end = min(end, start + target_len)
+        selected.append(_make(best_idx, start, end))
+        return selected
+
+    # ── 第二階段：總長度上限（保證濃縮）─────────────────
+    total = sum(s["end"] - s["start"] for s in selected)
+    if total <= budget:
+        return selected
+
+    # 超出預算：依分數由高到低貪婪保留，直到逼近上限
+    ranked = sorted(selected, key=lambda s: s.get("score", 0.0), reverse=True)
+    kept, used = [], 0.0
+    for s in ranked:
+        seg_len = s["end"] - s["start"]
+        if used + seg_len <= budget:
+            kept.append(s)
+            used += seg_len
+        if used >= budget:
+            break
+
+    # 極端情況：連最高分單段都超過預算 → 截斷最高分片段至預算長度
+    # （預算優先，確保嚴格短於原片；極短影片時可能小於 min_summary_sec）
+    if not kept:
+        top = ranked[0]
+        capped_len = min(budget, top["end"] - top["start"])
+        kept = [{**top, "end": top["start"] + capped_len}]
+
+    # 依時間排序回傳，維持播放順序
+    kept.sort(key=lambda s: s["start"])
+    return kept

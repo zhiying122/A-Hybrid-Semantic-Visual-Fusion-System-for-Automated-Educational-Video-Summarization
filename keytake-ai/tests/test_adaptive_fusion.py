@@ -121,14 +121,19 @@ class TestSlidingWindow:
         result = semantic_sliding_window([], [])
         assert result == []
 
-    def test_all_below_threshold_returns_empty(self):
+    def test_all_below_threshold_still_compresses(self):
+        """保證濃縮：即使全部低於門檻，也保底保留最高分片段，
+        且摘要總時長嚴格短於原片（不再回傳空）。"""
         segs = [
             {"start": 0, "end": 10, "s_text": 0.1, "s_visual": 0.1, "text": ""},
             {"start": 10, "end": 20, "s_text": 0.05, "s_visual": 0.05, "text": ""},
         ]
         scores = [0.05, 0.05]
         result = semantic_sliding_window(segs, scores)
-        assert result == [], f"All below threshold should return empty, got {result}"
+        assert len(result) >= 1, "全低分時應保底輸出至少一段"
+        original = 20.0
+        summary = sum(s["end"] - s["start"] for s in result)
+        assert summary < original, f"摘要必須短於原片，得到 {summary}s"
 
     def test_high_score_segment_selected(self):
         segs = [
@@ -150,6 +155,39 @@ class TestSlidingWindow:
             for seg in result:
                 for key in ("start", "end", "s_text", "s_visual", "text"):
                     assert key in seg, f"Missing key '{key}' in selected segment"
+
+    @settings(max_examples=200, deadline=None)
+    @given(
+        n=st.integers(min_value=1, max_value=60),
+        seg_dur=st.floats(min_value=1.0, max_value=30.0,
+                          allow_nan=False, allow_infinity=False),
+        scores_seed=st.integers(min_value=0, max_value=10_000),
+    )
+    def test_output_always_shorter_than_original(self, n, seg_dur, scores_seed):
+        """保證濃縮（核心性質）：任何長度、任何分數分布，
+        摘要總時長都必定嚴格短於原片，且至少輸出一段。"""
+        from config import MAX_SUMMARY_RATIO
+        rng = np.random.RandomState(scores_seed)
+        segs = [
+            {"start": i * seg_dur, "end": (i + 1) * seg_dur,
+             "s_text": float(rng.rand()), "s_visual": float(rng.rand()),
+             "text": f"seg{i}"}
+            for i in range(n)
+        ]
+        scores = [float(rng.rand()) for _ in range(n)]
+
+        result = semantic_sliding_window(segs, scores)
+
+        original = n * seg_dur
+        summary = sum(s["end"] - s["start"] for s in result)
+
+        assert len(result) >= 1, "必定至少輸出一段"
+        assert summary < original + 1e-6, (
+            f"摘要 {summary}s 必須短於原片 {original}s"
+        )
+        assert summary <= original * MAX_SUMMARY_RATIO + 1e-6, (
+            f"摘要 {summary}s 不得超過上限 {original * MAX_SUMMARY_RATIO}s"
+        )
 
 
 # ────────────────────────────────────────────────────────────────────

@@ -88,6 +88,16 @@ BETA = 0.4                        # 視覺權重 β（α + β = 1）
 FUSION_SCORE_THRESHOLD = 0.2      # 保留片段的最低融合分數（降低以選取更多片段）
 SLIDING_WINDOW_MIN_SEC = 10       # 語意感知滑動視窗最小保留秒數
 
+# ── 保證濃縮機制（任何長度影片都一定比原片短）──────────
+# 摘要總時長的上限比例：摘要不得超過「原片時長 × MAX_SUMMARY_RATIO」。
+# 例如 0.6 代表摘要最多是原片的 60%（至少節省 40%）。
+# 若門檻選段結果超過此上限，會依融合分數由高到低保留片段直到符合上限。
+MAX_SUMMARY_RATIO = 0.6
+# 短影片保護：影片越短，最小片段長度自動縮小，避免單段就吃掉整部片。
+# 當「原片 × MAX_SUMMARY_RATIO < SLIDING_WINDOW_MIN_SEC」時，
+# 最小片段長度會自動降為 原片 × MAX_SUMMARY_RATIO 的一半。
+MIN_SUMMARY_SEC = 2.0             # 摘要最短輸出秒數（保證永遠有可看的輸出）
+
 # ── 評估目標（計畫書 4.4）───────────────────────────
 TARGET_RECALL = 0.70
 TARGET_FALSE_ALARM_RATE = 0.25    # 誤報率目標 < 25%
