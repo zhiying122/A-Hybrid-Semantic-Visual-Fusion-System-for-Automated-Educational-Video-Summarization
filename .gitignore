@@ -17,6 +17,7 @@ env/
 
 # 影音資料（通常過大不適合 commit）
 *.mp4
+*.webm
 *.avi
 *.mov
 *.mkv

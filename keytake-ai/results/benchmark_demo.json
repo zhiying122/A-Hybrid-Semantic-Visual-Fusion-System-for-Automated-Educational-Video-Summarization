@@ -1,7 +1,7 @@
 {
   "benchmark_meta": {
-    "timestamp": "2026-07-06T17:04:54.620587",
-    "n_simulations_per_domain": 10,
+    "timestamp": "2026-08-16T15:40:53.362086",
+    "n_simulations_per_domain": 15,
     "note": "本結果為模擬數據，用於展示系統架構設計的效能預期。真實結果需以實際教學影片資料集驗證。"
   },
   "results": {
@@ -14,68 +14,68 @@
       "results": {
         "unimodal": {
           "recall": {
-            "mean": 0.7038,
-            "std": 0.228
+            "mean": 0.8053,
+            "std": 0.1427
           },
           "precision": {
-            "mean": 0.2425,
-            "std": 0.0869
+            "mean": 0.3109,
+            "std": 0.1025
           },
           "f1_score": {
-            "mean": 0.3566,
-            "std": 0.1212
+            "mean": 0.4348,
+            "std": 0.1132
           },
           "false_alarm_rate": {
-            "mean": 0.4077,
-            "std": 0.0703
+            "mean": 0.348,
+            "std": 0.0681
           },
           "time_saving_rate": {
-            "mean": 0.3701,
-            "std": 0.0805
+            "mean": 0.3961,
+            "std": 0.094
           }
         },
         "multimodal": {
           "recall": {
-            "mean": 0.6419,
-            "std": 0.2237
+            "mean": 0.7831,
+            "std": 0.1626
           },
           "precision": {
-            "mean": 0.2245,
-            "std": 0.0892
+            "mean": 0.293,
+            "std": 0.1138
           },
           "f1_score": {
-            "mean": 0.326,
-            "std": 0.1152
+            "mean": 0.4114,
+            "std": 0.1282
           },
           "false_alarm_rate": {
-            "mean": 0.4082,
-            "std": 0.075
+            "mean": 0.3313,
+            "std": 0.0708
           },
           "time_saving_rate": {
-            "mean": 0.3996,
-            "std": 0.0614
+            "mean": 0.4483,
+            "std": 0.084
           }
         },
         "adaptive": {
           "recall": {
-            "mean": 0.6752,
-            "std": 0.1851
+            "mean": 0.8224,
+            "std": 0.1352
           },
           "precision": {
-            "mean": 0.2592,
-            "std": 0.069
+            "mean": 0.3118,
+            "std": 0.0933
           },
           "f1_score": {
-            "mean": 0.3693,
-            "std": 0.0964
+            "mean": 0.4383,
+            "std": 0.0968
           },
           "false_alarm_rate": {
-            "mean": 0.3568,
-            "std": 0.0481
+            "mean": 0.3332,
+            "std": 0.0854
           },
           "time_saving_rate": {
-            "mean": 0.3888,
-            "std": 0.0858
+            "mean": 0.3997,
+            "std": 0.0804
           }
         }
       }
@@ -89,68 +89,68 @@
       "results": {
         "unimodal": {
           "recall": {
-            "mean": 0.8756,
-            "std": 0.144
+            "mean": 0.8641,
+            "std": 0.1448
           },
           "precision": {
-            "mean": 0.2681,
-            "std": 0.1183
+            "mean": 0.2766,
+            "std": 0.0955
           },
           "f1_score": {
-            "mean": 0.3968,
-            "std": 0.153
+            "mean": 0.409,
+            "std": 0.119
           },
           "false_alarm_rate": {
-            "mean": 0.4111,
-            "std": 0.1552
+            "mean": 0.3922,
+            "std": 0.0752
           },
           "time_saving_rate": {
-            "mean": 0.3414,
-            "std": 0.0626
+            "mean": 0.3917,
+            "std": 0.0631
           }
         },
         "multimodal": {
           "recall": {
-            "mean": 0.8464,
-            "std": 0.1601
+            "mean": 0.8457,
+            "std": 0.1798
           },
           "precision": {
-            "mean": 0.2599,
-            "std": 0.1088
+            "mean": 0.2678,
+            "std": 0.1172
           },
           "f1_score": {
-            "mean": 0.3825,
-            "std": 0.1421
+            "mean": 0.3935,
+            "std": 0.1423
           },
           "false_alarm_rate": {
-            "mean": 0.3881,
-            "std": 0.1109
+            "mean": 0.3694,
+            "std": 0.085
           },
           "time_saving_rate": {
-            "mean": 0.3693,
-            "std": 0.0447
+            "mean": 0.3924,
+            "std": 0.0623
           }
         },
         "adaptive": {
           "recall": {
-            "mean": 0.8756,
-            "std": 0.144
+            "mean": 0.8522,
+            "std": 0.1762
           },
           "precision": {
-            "mean": 0.2696,
-            "std": 0.1248
+            "mean": 0.2854,
+            "std": 0.1305
           },
           "f1_score": {
-            "mean": 0.3977,
-            "std": 0.161
+            "mean": 0.4099,
+            "std": 0.1523
           },
           "false_alarm_rate": {
-            "mean": 0.4118,
-            "std": 0.154
+            "mean": 0.3731,
+            "std": 0.0932
           },
           "time_saving_rate": {
-            "mean": 0.344,
-            "std": 0.059
+            "mean": 0.3907,
+            "std": 0.074
           }
         }
       }
@@ -164,68 +164,68 @@
       "results": {
         "unimodal": {
           "recall": {
-            "mean": 0.8638,
-            "std": 0.096
+            "mean": 0.7152,
+            "std": 0.1909
           },
           "precision": {
-            "mean": 0.2745,
-            "std": 0.1037
+            "mean": 0.2694,
+            "std": 0.0959
           },
           "f1_score": {
-            "mean": 0.401,
-            "std": 0.1134
+            "mean": 0.3845,
+            "std": 0.1195
           },
           "false_alarm_rate": {
-            "mean": 0.4083,
+            "mean": 0.3753,
             "std": 0.0903
           },
           "time_saving_rate": {
-            "mean": 0.3486,
-            "std": 0.0714
+            "mean": 0.388,
+            "std": 0.0708
           }
         },
         "multimodal": {
           "recall": {
-            "mean": 0.8271,
-            "std": 0.135
+            "mean": 0.7024,
+            "std": 0.2006
           },
           "precision": {
-            "mean": 0.2512,
-            "std": 0.0688
+            "mean": 0.2494,
+            "std": 0.0881
           },
           "f1_score": {
-            "mean": 0.3774,
-            "std": 0.091
+            "mean": 0.3619,
+            "std": 0.1148
           },
           "false_alarm_rate": {
-            "mean": 0.4068,
-            "std": 0.0909
+            "mean": 0.3688,
+            "std": 0.0625
           },
           "time_saving_rate": {
-            "mean": 0.3607,
-            "std": 0.0585
+            "mean": 0.4051,
+            "std": 0.0687
           }
         },
         "adaptive": {
           "recall": {
-            "mean": 0.8805,
-            "std": 0.1034
+            "mean": 0.7052,
+            "std": 0.1995
           },
           "precision": {
-            "mean": 0.2707,
-            "std": 0.0909
+            "mean": 0.263,
+            "std": 0.089
           },
           "f1_score": {
-            "mean": 0.4018,
-            "std": 0.1109
+            "mean": 0.3785,
+            "std": 0.1159
           },
           "false_alarm_rate": {
-            "mean": 0.4063,
-            "std": 0.0906
+            "mean": 0.3764,
+            "std": 0.0889
           },
           "time_saving_rate": {
-            "mean": 0.3466,
-            "std": 0.0723
+            "mean": 0.3928,
+            "std": 0.0721
           }
         }
       }
