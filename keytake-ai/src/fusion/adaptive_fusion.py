@@ -185,6 +185,18 @@ def semantic_sliding_window(
     if budget < min_sec:
         effective_min_sec = max(min_summary_sec, budget * 0.5)
 
+    # 自適應選段門檻：只挑相對突出的片段，避免固定低門檻把大量普通片段全選進來。
+    # 取「固定門檻」與「分數中位數」的較大者；片段夠多時才啟用百分位，
+    # 在召回率與濃縮率之間取得平衡（過高會漏掉重點，過低會連成一大塊）。
+    if len(scores) >= 5:
+        percentile_thr = float(np.percentile(scores, 50))
+        select_threshold = max(FUSION_SCORE_THRESHOLD, percentile_thr)
+    else:
+        select_threshold = FUSION_SCORE_THRESHOLD
+
+    # 單一片段的最大延伸長度：避免相鄰高分段一路黏成超長片段。
+    max_segment_sec = max(effective_min_sec * 2.0, min_summary_sec)
+
     def _make(idx_start: int, seg_start: float, seg_end: float) -> dict:
         return {
             "start": seg_start,
@@ -195,18 +207,23 @@ def semantic_sliding_window(
             "score": scores[idx_start],
         }
 
-    # ── 第一階段：門檻選段 + 語意延伸 ──────────────────
+    # ── 第一階段：門檻選段 + 語意延伸（受長度上限約束）──────
     selected = []
     i = 0
     while i < len(segments):
-        if scores[i] >= FUSION_SCORE_THRESHOLD:
+        if scores[i] >= select_threshold:
             start = segments[i]["start"]
             end = segments[i]["end"]
             j = i + 1
+            # 向後延伸以保持語句完整，但受兩個條件約束：
+            #   1. 達到最小時長後，遇到低於門檻的片段就停
+            #   2. 片段長度不得超過 max_segment_sec（避免黏成一大塊）
             while j < len(segments):
                 candidate_end = segments[j]["end"]
                 duration = candidate_end - start
-                if duration >= effective_min_sec and scores[j] < FUSION_SCORE_THRESHOLD:
+                if duration >= effective_min_sec and scores[j] < select_threshold:
+                    break
+                if duration > max_segment_sec:
                     break
                 end = candidate_end
                 j += 1

@@ -47,6 +47,16 @@ output/
 ground_truth.json
 transcript.json
 
+# 逐字稿與評分中間檔（由 export_transcript.py 產生，不需版控；保留 example 範例）
+keytake-ai/data/annotations/transcript_*.json
+keytake-ai/data/annotations/segments_*.json
+keytake-ai/data/annotations/annotator_*.json
+
+# 執行期評估中間產物
+keytake-ai/output/
+keytake-ai/results/eval_run/
+keytake-ai/results/eval_*_real.json
+
 # 暫存上傳與輸出影片
 tmp/
 demo_output/
