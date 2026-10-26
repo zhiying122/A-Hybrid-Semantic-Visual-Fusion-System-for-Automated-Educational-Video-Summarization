@@ -1,9 +1,18 @@
 """
-Demo Benchmark — 模擬初步實驗結果
+Demo Benchmark — 模擬數據（⚠️ 嚴禁用於論文 / 投稿 / 正式報告）
 ─────────────────────────────────────────────────────────────────────
-用途：在缺乏真實標註影片資料集的情況下，
-      以符合真實場景的模擬數據展示系統在各場景下的初步效能，
-      可直接用於計畫書投影片、論文圖表及競賽報告。
+==========================================================================
+  ⚠️⚠️⚠️  警告：本腳本產生的是「亂數模擬數據」，不是真實實驗結果  ⚠️⚠️⚠️
+  - 數據由 numpy 亂數依預期目標生成，並非跑真實影片得到。
+  - 絕對不可寫入論文、投稿稿件、口試投影片或任何對外報告。
+  - 若被審稿人或口試委員發現以模擬數據冒充實驗結果，屬學術不誠信。
+  - 要產生可發表的真實數據，請改用：
+        python tools/run_ablation.py        （單片真實消融）
+        python tools/run_ablation_batch.py  （多片真實消融彙整）
+  本腳本僅供「開發階段快速檢查融合公式行為」之用。
+==========================================================================
+
+用途：在缺乏真實標註影片資料集的情況下，僅供開發期快速檢視融合公式行為。
 
 設計原則：
   1. 模擬數據基於計畫書預期目標（召回率 >70%、誤報率 <25%、TSR >50%）
@@ -311,7 +320,7 @@ def run_demo_benchmark(n_simulations: int = 15, output_path: str = None) -> dict
         print(f"\n  提升幅度：")
         print(f"    多模態靜態 vs 純語意  : Recall +{delta_mm:+.1f}%")
         print(f"    自適應加權 vs 純語意  : Recall +{delta_adp:+.1f}%")
-        print(f"    自適應加權 vs 靜態   : Recall +{delta_v2:+.1f}% (v2 改進)")
+        print(f"    自適應加權 vs 靜態   : Recall +{delta_v2:+.1f}%")
         
         # 達成目標
         print(f"\n  目標達成檢查（自適應加權）：")
@@ -491,12 +500,12 @@ def _generate_markdown_report(all_results: dict, DOMAINS: dict, n_simulations: i
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="KeyTake AI Demo Benchmark")
+    parser = argparse.ArgumentParser(description="KeyTake AI Demo Benchmark（模擬數據，禁用於論文）")
     parser.add_argument(
         "--output",
         type=str,
-        default="results/benchmark_demo.json",
-        help="JSON 輸出路徑（預設：results/benchmark_demo.json）",
+        default="results/SIMULATED_DO_NOT_USE_benchmark_demo.json",
+        help="JSON 輸出路徑（預設檔名已標記為 SIMULATED_DO_NOT_USE）",
     )
     parser.add_argument(
         "--simulations",
@@ -504,6 +513,24 @@ if __name__ == "__main__":
         default=15,
         help="每場景模擬次數（預設：15）",
     )
+    parser.add_argument(
+        "--i-understand-this-is-simulated",
+        action="store_true",
+        help="確認你了解這是模擬數據、不會用於論文。未加此旗標將要求互動確認。",
+    )
     args = parser.parse_args()
-    
+
+    print("=" * 74)
+    print("  ⚠️  警告：本腳本產生『亂數模擬數據』，嚴禁用於論文 / 投稿 / 口試。")
+    print("      要產生真實數據請改用 run_ablation.py 或 run_ablation_batch.py。")
+    print("=" * 74)
+    if not args.i_understand_this_is_simulated:
+        try:
+            ans = input("  請輸入『SIMULATED』以確認你了解並仍要產生模擬數據：").strip()
+        except EOFError:
+            ans = ""
+        if ans != "SIMULATED":
+            print("  已取消。未產生任何模擬數據。")
+            sys.exit(0)
+
     run_demo_benchmark(n_simulations=args.simulations, output_path=args.output)

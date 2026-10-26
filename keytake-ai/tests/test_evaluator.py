@@ -192,11 +192,7 @@ class TestEvaluateAllProperties:
         total_duration=st.floats(min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False),
     )
     def test_evaluate_all_contains_f1_score_key(self, selected, ground_truth, total_duration):
-        """
-        Property: evaluate_all() 回傳結果應包含 'f1_score' 鍵（v2 新增）
-
-        **Validates: Requirements 4.4**
-        """
+        """Property: evaluate_all() 回傳結果應包含 'f1_score' 鍵"""
         mock_f1 = MagicMock()
         mock_f1.mean.return_value = 0.75
 
@@ -213,11 +209,7 @@ class TestEvaluateAllProperties:
             f"f1_score {result['f1_score']} out of range [0.0, 1.0]"
 
     def test_evaluate_all_returns_all_expected_keys(self):
-        """
-        Unit test: evaluate_all() 應回傳所有六個指標鍵（v2 新增 precision、f1_score）
-
-        **Validates: Requirements 4.4**
-        """
+        """Unit test: evaluate_all() 應回傳所有六個指標鍵（含 precision、f1_score）"""
         mock_f1 = MagicMock()
         mock_f1.mean.return_value = 0.8
 

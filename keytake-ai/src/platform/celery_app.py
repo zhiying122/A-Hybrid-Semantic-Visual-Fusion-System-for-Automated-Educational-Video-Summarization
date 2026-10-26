@@ -1,10 +1,8 @@
 """
-Celery 任務佇列設定
-對應計畫書 4.3：非同步處理架構，高算力模組後端排程執行
+Celery 非同步任務設定
 
-需要：
-  pip install celery redis
-  並啟動 Redis server（預設 localhost:6379）
+以 Redis 作為 broker 與 result backend，
+處理教學影片摘要 pipeline 的非同步執行。
 """
 
 import os
@@ -38,10 +36,7 @@ celery_app.conf.update(
 
 @celery_app.task(bind=True, name="process_video")
 def process_video_task(self, task_id: str, video_path: str) -> dict:
-    """
-    Celery 非同步任務：執行完整摘要 pipeline
-    SRGAN 超解析模組僅在偵測到模糊手寫字時觸發（計畫書 4.3）
-    """
+    """執行完整摘要 pipeline，回傳精華片段索引與統計資訊。"""
     from main import run_pipeline
     from src.output.video_exporter import export_summary_video, export_index
 
@@ -58,8 +53,7 @@ def process_video_task(self, task_id: str, video_path: str) -> dict:
     index_path = os.path.join(out_dir, "index.json")
     export_index(result["segments"], index_path)
 
-    # 保留原始影片，避免使用者檔案被意外刪除
-    # 僅清理系統暫存的副本（從 UPLOAD_DIR 複製的檔案）
+    # 清理上傳暫存副本（不刪除使用者原始檔案）
     upload_dir = os.path.join("tmp", "uploads")
     if os.path.exists(video_path) and os.path.abspath(video_path).startswith(os.path.abspath(upload_dir)):
         os.remove(video_path)

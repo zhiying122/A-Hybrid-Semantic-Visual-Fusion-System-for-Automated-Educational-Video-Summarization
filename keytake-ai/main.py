@@ -1,24 +1,13 @@
 """
-KeyTake AI - 主流程 (v5)
-─────────────────────────────────────────────────────────────────────
-v5 升級：四模態融合 + 學習性融合 + 多元輸出
+KeyTake AI — 主流程
 
-新增功能：
-  - 韻律特徵分析（Prosodic Features）：語速、音量、音高變化、停頓比例作為第三模態
-  - CLIP 視覺-文字對齊：跳過 OCR 直接做圖文語意匹配，改善困難場域
-  - MLP 可學習融合：以監督式學習取代固定 α/β 公式（可選）
-  - LLM 評分快取：避免重複 API 呼叫，結果穩定且省費用
-  - 多元學習素材輸出：章節標題、Markdown 筆記、心智圖、Q&A 閃卡
-
-v4 功能（保留）：
-  - LLM 對每段輸出：重要性分數 + 教學階段 + 一句摘要
-  - generate_course_summary()：全課脈絡分析
-  - export_index 使用 LLM 摘要句作為片段標籤
-
-v3 功能（保留）：
-  1. GRU 手勢意圖分類器：5 種意圖，每種有不同重要性分數
-  2. LLM 語意評分：支援 OpenAI / Groq / Ollama
-  3. 多幀視覺取樣：每段取 3 幀（頭25%/中50%/尾75%）
+完整摘要 pipeline 入口。依序執行：
+  1. 影音前處理（FFmpeg 格式轉換、音訊提取）
+  2. 語音轉錄（Whisper）+ 語意評分（SBERT / LLM）
+  3. 韻律特徵提取（librosa）
+  4. 視覺特徵提取（MediaPipe + GRU + OCR + CLIP）
+  5. 多模態融合 + 語意感知滑動視窗選段
+  6. 輸出摘要影片 + 學習素材
 """
 
 import cv2
@@ -57,7 +46,7 @@ except ImportError:
     USE_MLP_FUSION = False
     CLIP_WEIGHT = 0.3
 
-# 每個片段取幾幀做視覺分析（v3 新增）
+# 每個片段取幾幀做視覺分析（頭25%/中50%/尾75%）
 VISUAL_FRAMES_PER_SEGMENT = 3
 
 
@@ -102,14 +91,14 @@ def run_pipeline(
     scorer = SemanticScorer(prompt_corpus=PROMPT_CORPUS)
     segments = scorer.score(segments)
 
-    # v4 新增：全課結構分析（LLM 模式才有意義，SBERT 模式也會回傳基本結果）
+    # 全課脈絡分析（LLM 模式輸出課程標題與摘要，SBERT 模式回傳基本結果）
     _progress(1, "全課脈絡分析中...")
     course_summary = scorer.generate_course_summary(segments)
     if course_summary.get("title"):
         print(f"\n[課程分析] 標題：{course_summary['title']}")
         print(f"           摘要：{course_summary.get('summary', '')[:80]}")
 
-    # ── 步驟 2.5：韻律特徵提取（v5 新增）─────────────────────
+    # ── 步驟 2.5：韻律特徵提取 ──────────────────────────────
     print("\n[Step 2.5] 韻律特徵提取...")
     _progress(1, "分析語速、音量、音高變化...")
     prosodic_analyzer = ProsodicAnalyzer()
@@ -117,17 +106,17 @@ def run_pipeline(
     avg_prosodic = np.mean([seg.get("s_prosodic", 0.5) for seg in segments])
     print(f"           平均韻律分數：{avg_prosodic:.3f}")
 
-    # ── 步驟三：視覺特徵提取（逐幀分析 - v2架構）────────────────
-    print("\n[Step 3] 視覺特徵提取 (v2 架構 + CLIP 跨模態對齊)...")
+    # ── 步驟三：視覺特徵提取 ────────────────────────────────
+    print("\n[Step 3] 視覺特徵提取（MediaPipe + GRU + OCR + CLIP）...")
     _progress(2, "初始化視覺與語意模型...")
-    
-    # 【關鍵修正】在迴圈外初始化所有模型，避免 Memory Out
+
+    # 在迴圈外統一初始化所有模型，避免記憶體重複分配
     tracker = HandTracker()
     text_detector = TextDetector()
     sbert_calculator = SBERTCalculator()
     srgan_enhancer = SRGANEnhancer()
-    clip_scorer = CLIPScorer.get_instance()  # v5：CLIP 跨模態對齊
-    reliability_estimator = VisualReliabilityEstimator()  # v2：視覺可靠度估測器
+    clip_scorer = CLIPScorer.get_instance()
+    reliability_estimator = VisualReliabilityEstimator()
     
     cap = cv2.VideoCapture(paths["video"])
     fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
@@ -139,7 +128,7 @@ def run_pipeline(
         seg_start = seg["start"]
         seg_end = seg["end"]
 
-        # v3 多幀取樣：取片段的 25% / 50% / 75% 三個時間點
+        # 每個片段取三個時間點（25% / 50% / 75%）採樣
         sample_times = [
             seg_start + (seg_end - seg_start) * ratio
             for ratio in [0.25, 0.50, 0.75]
@@ -181,7 +170,7 @@ def run_pipeline(
                     sbert_calculator=sbert_calculator,
                     srgan_enhancer=srgan_enhancer,
                 )
-                # v5：CLIP 跨模態對齊分數（與 OCR→SBERT 路徑互補）
+                # CLIP 跨模態對齊分數（與 OCR→SBERT 路徑互補）
                 clip_score = clip_scorer.compute_clip_score_with_keywords(
                     roi, asr_keywords
                 ) if clip_scorer.is_available else 0.0
@@ -190,11 +179,11 @@ def run_pipeline(
                     (1 - CLIP_WEIGHT) * v_result.score + CLIP_WEIGHT * clip_score
                 ) if clip_score > 0 else v_result.score
 
-                # v3：用手勢意圖分數調整視覺分數
+                # 以手勢意圖分數加權視覺分數
                 intent_score = event.get("intent_score", 1.0)
                 adjusted_score = combined_visual * intent_score
             else:
-                # 未觸發時也用意圖分數（比純變異數更準確）
+                # 未觸發時以意圖分數作為視覺分數代理
                 adjusted_score = event.get("intent_score", event["s_visual_raw"])
                 reliability_result.reliability = reliability_result.reliability * 0.5
 
@@ -223,7 +212,7 @@ def run_pipeline(
     _progress(3, "四模態融合分數計算中...")
 
     if USE_MLP_FUSION:
-        # v5：使用 MLP 可學習融合模型（需先訓練）
+        # MLP 可學習融合（需先執行 tools/train_mlp_fusion.py）
         print("  [融合策略] MLP 可學習融合")
         fusion_scores = fuse_scores_mlp(segments)
     else:
@@ -238,10 +227,10 @@ def run_pipeline(
                 BETA,
                 visual_reliability=seg.get("visual_reliability", 1.0),
             )
-            # v5：韻律加權（韻律分數高的片段獲得提升）
+            # 韻律加權：韻律分數高的片段獲得提升，低的被壓低
+            # 公式：base * (1 + PROSODIC_WEIGHT * (prosodic - 0.5) * 2)
+            # prosodic = 0.5 時無影響，> 0.5 提升，< 0.5 壓低
             prosodic = seg.get("s_prosodic", 0.5)
-            # 韻律提升：base * (1 + PROSODIC_WEIGHT * (prosodic - 0.5) * 2)
-            # 韻律分數 0.5 時無影響，高於 0.5 提升，低於 0.5 壓低
             prosodic_boost = 1.0 + PROSODIC_WEIGHT * (prosodic - 0.5) * 2
             final_score = float(np.clip(base_score * prosodic_boost, 0.0, 1.0))
             fusion_scores.append(final_score)
@@ -262,17 +251,17 @@ def run_pipeline(
     print(f"       選取片段數: {len(selected)}")
     print(f"       手勢分布: {gesture_counts}")
 
-    # ── 效能評估指標 (Requirement 4) ───────────────────
+    # ── 效能評估指標 ──────────────────────────────────────
     result_dict = {
         "segments": selected,
         "summary_duration": summary_duration,
         "original_duration": total_duration,
         "time_saving_rate": time_saving_rate,
-        "course_summary": course_summary,          # v4：全課摘要供前端顯示
-        "gesture_distribution": gesture_counts,    # v4：手勢分布統計
+        "course_summary": course_summary,
+        "gesture_distribution": gesture_counts,
     }
 
-    # v5：自動產生學習素材（章節標題、筆記、心智圖、閃卡）
+    # 產生學習素材（章節標題、Markdown 筆記、心智圖、Q&A 閃卡）
     try:
         _progress(3, "產生學習素材中...")
         materials_gen = StudyMaterialsGenerator()
@@ -317,7 +306,7 @@ if __name__ == "__main__":
     if args.gt and os.path.exists(args.gt):
         with open(args.gt, "r", encoding="utf-8") as f:
             raw = json.load(f)
-        # 格式一：annotator.py 產出的 {"ground_truth": [{"start": ..., "end": ...}]}
+        # 格式一：annotator.py 產出的 {"ground_truth": [...]}
         if isinstance(raw, dict) and "ground_truth" in raw:
             gt_list = raw["ground_truth"]
             gt_data = []
@@ -327,7 +316,7 @@ if __name__ == "__main__":
                                     float(g.get("end", g.get("end_sec", 0)))))
                 else:
                     gt_data.append((float(g[0]), float(g[1])))
-        # 格式二：簡單陣列 [[10.5, 20.0], [45.0, 60.0]]
+        # 格式二：簡單陣列 [[start, end], ...]
         elif isinstance(raw, list):
             gt_data = [(float(g[0]), float(g[1])) for g in raw]
 

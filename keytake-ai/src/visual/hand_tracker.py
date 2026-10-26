@@ -1,23 +1,13 @@
 """
-步驟三：視覺特徵提取 - 手部軌跡追蹤 (v3)
-─────────────────────────────────────────────────────────────────────
-v3 改進：整合 GestureClassifier，把「手是否靜止」升級為「手在做什麼」
+手部追蹤模組
 
-原始做法：只看食指位移變異數（靜止 = 重要，移動 = 不重要）
-v3 做法：用 GRU 模型對食指軌跡序列分類為 5 種手勢意圖，
-          每種意圖對應不同的視覺重要性貢獻分數：
-            POINTING   → 1.00（最重要）
-            EMPHASIS   → 0.90（強調）
-            WRITING    → 0.85（書寫）
-            TRANSITION → 0.20（換場）
-            IDLE       → 0.10（無手）
+以 MediaPipe Hand Landmarker 追蹤教師食指座標，
+搭配卡爾曼濾波平滑座標抖動，再以 GRU 手勢意圖分類器
+判斷當前手勢類型（指引、強調、書寫、過渡、無手部），
+輸出視覺觸發事件與意圖重要性分數。
 
-模型不存在時自動降級為規則型分類器（不影響主流程）。
-
-- 使用 MediaPipe Hands Tasks API（0.10.x 新版）進行手部骨架追蹤
-- 卡爾曼濾波平滑座標
-- 觸發後裁切 ROI
-對應計畫書 4.2 步驟三
+MediaPipe Tasks API 不可用時自動降級至舊版 solutions API；
+兩者皆不可用時回傳零分數，不影響主流程。
 """
 
 import cv2
@@ -65,7 +55,6 @@ class HandTracker:
         self.window_size = window_size
         self.coord_history: list[tuple[float, float]] = []
         self._detector = None
-        # v3：初始化手勢意圖分類器
         self.gesture_classifier = GestureClassifier()
         self._init_detector()
 
@@ -168,14 +157,14 @@ class HandTracker:
 
     def process_frame(self, frame: np.ndarray) -> dict:
         """
-        處理單一幀，回傳視覺事件資訊（v3 新增 gesture_result）
+        處理單一幀，回傳視覺事件資訊。
 
         回傳：{
             "triggered": bool,
             "roi_center": tuple or None,
-            "s_visual_raw": float,        # 基於變異數的原始分數（向後兼容）
-            "gesture_result": GestureResult,  # v3 新增：手勢意圖分類結果
-            "intent_score": float,            # v3 新增：意圖重要性分數
+            "s_visual_raw": float,
+            "gesture_result": GestureResult,
+            "intent_score": float,
         }
         """
         if self._api_mode == "none":
@@ -241,7 +230,7 @@ class HandTracker:
         ys = [c[1] for c in self.coord_history]
         variance = np.var(xs) + np.var(ys)
 
-        # v3：用手勢分類器取代純變異數判斷
+        # 以 GRU 分類器判斷手勢意圖
         gesture_result = self.gesture_classifier.classify(
             self.coord_history,
             frame_w=w,
@@ -249,9 +238,8 @@ class HandTracker:
             hand_detected=True,
         )
 
-        # triggered 條件：指引或書寫或強調（意圖分數 > 0.7）
+        # 意圖分數 > 0.7 時觸發視覺分析（指引、書寫、強調）
         triggered = gesture_result.intent_score >= 0.7
-        # s_visual_raw 改為用意圖分數（而非純變異數）
         s_visual_raw = gesture_result.intent_score
 
         return {

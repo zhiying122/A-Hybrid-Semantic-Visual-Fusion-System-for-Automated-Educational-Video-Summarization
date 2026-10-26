@@ -1,10 +1,16 @@
 """
-步驟三（後半）：視覺分數計算
-- OCR 辨識板書內容並與 ASR 關鍵字計算語意相關性
-- 降級備援：字跡模糊時改用手部座標與文字框 IoU
-- 輔助特徵：HSV 色彩標記（螢光筆）
-- v2：整合文字偵測優先、SBERT 語意計算、SRGAN 模糊增強
-對應計畫書 4.2 步驟三
+視覺分數計算模組
+
+根據手部觸發事件對 ROI 進行 OCR，並以 SBERT 計算板書文字與
+ASR 關鍵字的語意相似度，得到視覺分數 s_visual。
+
+流程：
+  1. 模糊偵測 → 觸發 SRGAN/bicubic 增強
+  2. 文字偵測 → 判斷是否執行 OCR
+  3. OCR → SBERT 語意相似度計算
+  4. OCR 失敗 → 退化為手部座標與文字框 IoU
+
+同時支援螢光筆顏色偵測作為輔助特徵。
 """
 
 from dataclasses import dataclass
@@ -145,15 +151,7 @@ def compute_visual_score_v2(
     blur_threshold: float = BLUR_THRESHOLD,
     sbert_threshold: float = SBERT_SIMILARITY_THRESHOLD
 ) -> VisualScoreResult:
-    """
-    計算視覺分數（v2：偵測優先 + SBERT + SRGAN 整合）
-    
-    流程：
-    1. 模糊偵測 → 觸發 SRGAN 增強（若需要）
-    2. 文字偵測 → 判斷是否執行 OCR
-    3. OCR 辨識 → SBERT 語意相似度計算
-    4. 降級備援 → IoU 計算（若 OCR 失敗或未偵測到文字）
-    """
+    """計算視覺分數（文字偵測優先 + SBERT + SRGAN 整合版本）。"""
     if text_detector is None:
         text_detector = TextDetector()
     if sbert_calculator is None:

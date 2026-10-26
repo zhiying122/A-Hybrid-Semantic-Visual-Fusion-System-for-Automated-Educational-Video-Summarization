@@ -1,8 +1,8 @@
 """
 文字區域偵測模組
-- 使用 pytesseract image_to_data 進行文字區域偵測
-- 作為 OCR 的前置判斷，減少不必要的 OCR 運算
-對應計畫書 4.2 步驟三：視覺特徵提取
+
+以 pytesseract image_to_data 偵測 ROI 中的文字框，
+作為 OCR 的前置過濾，避免對無文字區域執行完整 OCR。
 """
 
 from dataclasses import dataclass

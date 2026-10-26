@@ -1,6 +1,7 @@
 """
 Leave-One-Out Cross-Validation 執行腳本
-對應計畫書 4.2 步驟四：驗證模型在未見過課程上的泛化穩定性
+
+驗證融合參數在未見過課程上的泛化穩定性。
 
 用法：
   cd keytake-ai

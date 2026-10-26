@@ -1,0 +1,1145 @@
+[
+  {
+    "start": 0.0,
+    "end": 15.72,
+    "text": "The following video cassette is a presentation of youth enterprises.",
+    "s_text": 0.4503,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 15.72,
+    "end": 19.02,
+    "text": "Coming up next on Amazing Discovery's Home Video cassette program, we're going to show",
+    "s_text": 0.549,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 19.02,
+    "end": 21.08,
+    "text": "you how to become a human calculator.",
+    "s_text": 0.4879,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 21.08,
+    "end": 25.12,
+    "text": "You'll learn addition, subtraction, multiplication, squaring, and more.",
+    "s_text": 0.5648,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 25.12,
+    "end": 28.24,
+    "text": "We'll even teach you a trick to amaze everyone.",
+    "s_text": 0.5817,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 28.24,
+    "end": 31.84,
+    "text": "You will finally learn how fun and easy math can really be.",
+    "s_text": 0.4673,
+    "s_visual": 0.1,
+    "visual_reliability": 0.1698,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 31.84,
+    "end": 38.64,
+    "text": "So sit back, relax, and get ready to learn with a human calculator himself, Scott Landsberg.",
+    "s_text": 0.5637,
+    "s_visual": 0.1,
+    "visual_reliability": 0.0582,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 38.64,
+    "end": 42.56,
+    "text": "Congratulations on taking your first step to becoming a human calculator.",
+    "s_text": 0.4812,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 42.56,
+    "end": 46.0,
+    "text": "Today in our program, I'll show you guys how to really make math fun.",
+    "s_text": 0.5493,
+    "s_visual": 0.1,
+    "visual_reliability": 0.1651,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 46.0,
+    "end": 49.16,
+    "text": "I'll show you a lot of different ways to get to the right answer.",
+    "s_text": 0.7372,
+    "s_visual": 0.2,
+    "visual_reliability": 0.5429,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 49.16,
+    "end": 51.44,
+    "text": "Remember, that's the key today, to get the right answer.",
+    "s_text": 0.7423,
+    "s_visual": 0.2,
+    "visual_reliability": 0.444,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 51.44,
+    "end": 54.32,
+    "text": "Now, to get started, let's get our brains warmed up a little bit.",
+    "s_text": 0.6349,
+    "s_visual": 0.2,
+    "visual_reliability": 0.3799,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 54.32,
+    "end": 56.48,
+    "text": "So, to start out, could you do some addition forming?",
+    "s_text": 0.5722,
+    "s_visual": 0.0006,
+    "visual_reliability": 0.4093,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 56.48,
+    "end": 57.8,
+    "text": "Go ahead and stand up.",
+    "s_text": 0.628,
+    "s_visual": 0.1,
+    "visual_reliability": 0.4647,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 57.8,
+    "end": 59.8,
+    "text": "I got to add up a bunch of numbers in my head here.",
+    "s_text": 0.5314,
+    "s_visual": 0.1,
+    "visual_reliability": 0.3253,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 59.8,
+    "end": 60.8,
+    "text": "It gets me going, okay?",
+    "s_text": 0.5006,
+    "s_visual": 0.1,
+    "visual_reliability": 0.1116,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 60.8,
+    "end": 64.0,
+    "text": "So, pick a whole bunch of three digit numbers, and I'll try to add them up.",
+    "s_text": 0.7207,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 64.0,
+    "end": 66.04,
+    "text": "And you guys add them up on your calculator, all right?",
+    "s_text": 0.7153,
+    "s_visual": 0.2,
+    "visual_reliability": 0.4487,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 66.04,
+    "end": 70.48,
+    "text": "So, you give me a number, and then I'll say plus, and then you go back, and we'll just keep doing it, okay?",
+    "s_text": 0.783,
+    "s_visual": 0.2,
+    "visual_reliability": 0.4176,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 70.48,
+    "end": 71.84,
+    "text": "And you guys just keep up on the calculator.",
+    "s_text": 0.6547,
+    "s_visual": 0.2,
+    "visual_reliability": 0.3406,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 71.84,
+    "end": 72.84,
+    "text": "Go ahead.",
+    "s_text": 0.52,
+    "s_visual": 0.1,
+    "visual_reliability": 0.1168,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 72.84,
+    "end": 74.84,
+    "text": "522 plus.",
+    "s_text": 0.2021,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 74.84,
+    "end": 77.84,
+    "text": "6297 plus.",
+    "s_text": 0.2287,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 77.84,
+    "end": 80.36,
+    "text": "523 plus.",
+    "s_text": 0.1988,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 80.36,
+    "end": 82.36,
+    "text": "126.",
+    "s_text": 0.2322,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 82.36,
+    "end": 83.76,
+    "text": "And one more.",
+    "s_text": 0.6154,
+    "s_visual": 0.1,
+    "visual_reliability": 0.0936,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 83.76,
+    "end": 85.6,
+    "text": "722.",
+    "s_text": 0.2608,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 85.6,
+    "end": 87.6,
+    "text": "2,590.",
+    "s_text": 0.179,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 87.6,
+    "end": 88.6,
+    "text": "Is that all right?",
+    "s_text": 0.609,
+    "s_visual": 0.1,
+    "visual_reliability": 0.1622,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 88.6,
+    "end": 89.6,
+    "text": "All right.",
+    "s_text": 0.5997,
+    "s_visual": 0.2,
+    "visual_reliability": 0.4049,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 89.6,
+    "end": 90.6,
+    "text": "Okay, very good.",
+    "s_text": 0.4356,
+    "s_visual": 0.1,
+    "visual_reliability": 0.1566,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 90.6,
+    "end": 91.6,
+    "text": "Thanks.",
+    "s_text": 0.2949,
+    "s_visual": 0.1,
+    "visual_reliability": 0.1489,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 91.6,
+    "end": 93.6,
+    "text": "Let's try out some multiplication right here.",
+    "s_text": 0.6151,
+    "s_visual": 0.1,
+    "visual_reliability": 0.0729,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 93.6,
+    "end": 94.6,
+    "text": "Could you stand up?",
+    "s_text": 0.4518,
+    "s_visual": 0.0002,
+    "visual_reliability": 0.6812,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 94.6,
+    "end": 95.6,
+    "text": "Okay.",
+    "s_text": 0.5441,
+    "s_visual": 0.2,
+    "visual_reliability": 0.5864,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 95.6,
+    "end": 97.6,
+    "text": "So, let's start out with two digit numbers.",
+    "s_text": 0.4924,
+    "s_visual": 0.2,
+    "visual_reliability": 0.4362,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 97.6,
+    "end": 101.6,
+    "text": "Just give me two digit numbers, and I'll multiply them in my head, and you guys do it on your calculator.",
+    "s_text": 0.6838,
+    "s_visual": 0.2,
+    "visual_reliability": 0.3785,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 101.6,
+    "end": 102.6,
+    "text": "Go ahead.",
+    "s_text": 0.52,
+    "s_visual": 0.1,
+    "visual_reliability": 0.1298,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 102.6,
+    "end": 103.6,
+    "text": "3,2.",
+    "s_text": 0.3357,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 103.6,
+    "end": 104.6,
+    "text": "Times.",
+    "s_text": 0.251,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 104.6,
+    "end": 105.6,
+    "text": "75.",
+    "s_text": 0.2413,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 105.6,
+    "end": 107.6,
+    "text": "That'd be 2,400.",
+    "s_text": 0.3275,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 107.6,
+    "end": 108.6,
+    "text": "Is that all right?",
+    "s_text": 0.609,
+    "s_visual": 0.0007,
+    "visual_reliability": 0.31,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 108.6,
+    "end": 109.6,
+    "text": "Let's try another one.",
+    "s_text": 0.6146,
+    "s_visual": 0.2,
+    "visual_reliability": 0.578,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 109.6,
+    "end": 110.6,
+    "text": "Go ahead.",
+    "s_text": 0.52,
+    "s_visual": 0.2,
+    "visual_reliability": 0.3927,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 110.6,
+    "end": 113.6,
+    "text": "3,3 digit number, times the 2 digit number.",
+    "s_text": 0.5411,
+    "s_visual": 0.1,
+    "visual_reliability": 0.1525,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 113.6,
+    "end": 114.6,
+    "text": "567.",
+    "s_text": 0.1948,
+    "s_visual": 0.2,
+    "visual_reliability": 0.3838,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 114.6,
+    "end": 115.6,
+    "text": "Times.",
+    "s_text": 0.251,
+    "s_visual": 0.2,
+    "visual_reliability": 0.3771,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 115.6,
+    "end": 117.6,
+    "text": "68.",
+    "s_text": 0.3018,
+    "s_visual": 0.1,
+    "visual_reliability": 0.1293,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 117.6,
+    "end": 120.6,
+    "text": "38.",
+    "s_text": 0.2337,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 120.6,
+    "end": 121.6,
+    "text": "34,000.",
+    "s_text": 0.1412,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 121.6,
+    "end": 124.6,
+    "text": "Hang on, that's a real hard one.",
+    "s_text": 0.5677,
+    "s_visual": 0.0009,
+    "visual_reliability": 0.4807,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 124.6,
+    "end": 128.6,
+    "text": "You got me on this one.",
+    "s_text": 0.6436,
+    "s_visual": 0.0009,
+    "visual_reliability": 0.7156,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 128.6,
+    "end": 131.6,
+    "text": "I think it's 2834, that 39690.",
+    "s_text": 0.4423,
+    "s_visual": 0.1,
+    "visual_reliability": 0.5419,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 131.6,
+    "end": 133.6,
+    "text": "How about 38,556?",
+    "s_text": 0.1704,
+    "s_visual": 0.1,
+    "visual_reliability": 0.2107,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 133.6,
+    "end": 134.6,
+    "text": "Yeah.",
+    "s_text": 0.3776,
+    "s_visual": 0.2,
+    "visual_reliability": 0.5916,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 134.6,
+    "end": 135.6,
+    "text": "Is that all right?",
+    "s_text": 0.609,
+    "s_visual": 0.2,
+    "visual_reliability": 0.5193,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 135.6,
+    "end": 136.6,
+    "text": "That was really hard.",
+    "s_text": 0.3642,
+    "s_visual": 0.2,
+    "visual_reliability": 0.4081,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 136.6,
+    "end": 137.6,
+    "text": "Okay.",
+    "s_text": 0.5441,
+    "s_visual": 0.1,
+    "visual_reliability": 0.3591,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 137.6,
+    "end": 140.6,
+    "text": "Let's try some division.",
+    "s_text": 0.5803,
+    "s_visual": 0.1,
+    "visual_reliability": 0.176,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 140.6,
+    "end": 141.6,
+    "text": "Let's see.",
+    "s_text": 0.5878,
+    "s_visual": 0.0006,
+    "visual_reliability": 0.357,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 141.6,
+    "end": 142.6,
+    "text": "Give me a division, prom.",
+    "s_text": 0.2392,
+    "s_visual": 0.0008,
+    "visual_reliability": 0.6673,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 142.6,
+    "end": 147.6,
+    "text": "Pick like a three digit number, and then divide it by a one digit number.",
+    "s_text": 0.6149,
+    "s_visual": 0.2,
+    "visual_reliability": 0.57,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 147.6,
+    "end": 148.6,
+    "text": "Okay.",
+    "s_text": 0.5441,
+    "s_visual": 0.1,
+    "visual_reliability": 0.2485,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 148.6,
+    "end": 149.6,
+    "text": "Two divided by...",
+    "s_text": 0.2803,
+    "s_visual": 0.1,
+    "visual_reliability": 0.3609,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 149.6,
+    "end": 151.6,
+    "text": "Well, the other way around.",
+    "s_text": 0.5017,
+    "s_visual": 0.1,
+    "visual_reliability": 0.2527,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 151.6,
+    "end": 152.6,
+    "text": "400 divided by two.",
+    "s_text": 0.1671,
+    "s_visual": 0.1,
+    "visual_reliability": 0.0867,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 152.6,
+    "end": 154.6,
+    "text": "400 divided by two is pretty easy.",
+    "s_text": 0.3054,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 154.6,
+    "end": 155.6,
+    "text": "It's 200.",
+    "s_text": 0.3658,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 155.6,
+    "end": 156.6,
+    "text": "Let's try another one.",
+    "s_text": 0.6146,
+    "s_visual": 0.1,
+    "visual_reliability": 0.1641,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 156.6,
+    "end": 157.6,
+    "text": "Go ahead, right here.",
+    "s_text": 0.6048,
+    "s_visual": 0.0011,
+    "visual_reliability": 0.6996,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 157.6,
+    "end": 158.6,
+    "text": "Come here.",
+    "s_text": 0.3743,
+    "s_visual": 0.2,
+    "visual_reliability": 0.5967,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 158.6,
+    "end": 159.6,
+    "text": "Yeah.",
+    "s_text": 0.3776,
+    "s_visual": 0.2,
+    "visual_reliability": 0.4373,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 159.6,
+    "end": 160.6,
+    "text": "Okay.",
+    "s_text": 0.5441,
+    "s_visual": 0.0008,
+    "visual_reliability": 0.682,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 160.6,
+    "end": 162.6,
+    "text": "658 divided by nine.",
+    "s_text": 0.1731,
+    "s_visual": 0.1,
+    "visual_reliability": 0.5075,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 162.6,
+    "end": 166.6,
+    "text": "That'd be 73.111111.",
+    "s_text": 0.3731,
+    "s_visual": 0.1,
+    "visual_reliability": 0.1741,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 166.6,
+    "end": 167.6,
+    "text": "Okay.",
+    "s_text": 0.5441,
+    "s_visual": 0.1,
+    "visual_reliability": 0.1535,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 167.6,
+    "end": 170.6,
+    "text": "Now, let's try something a little bit harder.",
+    "s_text": 0.564,
+    "s_visual": 0.1,
+    "visual_reliability": 0.3158,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 170.6,
+    "end": 172.6,
+    "text": "How many of you know what a cube is?",
+    "s_text": 0.4897,
+    "s_visual": 0.1731,
+    "visual_reliability": 0.5948,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 172.6,
+    "end": 173.6,
+    "text": "All right.",
+    "s_text": 0.5997,
+    "s_visual": 0.2,
+    "visual_reliability": 0.5225,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 173.6,
+    "end": 174.6,
+    "text": "Now, let's try that.",
+    "s_text": 0.6856,
+    "s_visual": 0.2,
+    "visual_reliability": 0.4372,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 174.6,
+    "end": 176.6,
+    "text": "Everybody with your calculator, go ahead and clear it.",
+    "s_text": 0.6191,
+    "s_visual": 0.2,
+    "visual_reliability": 0.3804,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 176.6,
+    "end": 179.6,
+    "text": "Now, pick a two digit number and punch it in.",
+    "s_text": 0.6164,
+    "s_visual": 0.0008,
+    "visual_reliability": 0.6036,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 179.6,
+    "end": 180.6,
+    "text": "All right.",
+    "s_text": 0.5997,
+    "s_visual": 0.001,
+    "visual_reliability": 0.7849,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 180.6,
+    "end": 181.6,
+    "text": "Don't tell me what it is.",
+    "s_text": 0.5154,
+    "s_visual": 0.0,
+    "visual_reliability": 0.7029,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 181.6,
+    "end": 183.6,
+    "text": "And then hit your multiplication key.",
+    "s_text": 0.4068,
+    "s_visual": 0.3955,
+    "visual_reliability": 0.6663,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 183.6,
+    "end": 186.6,
+    "text": "And then hit the same two digit number again.",
+    "s_text": 0.556,
+    "s_visual": 0.0007,
+    "visual_reliability": 0.7431,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 186.6,
+    "end": 188.6,
+    "text": "And hit your multiplication key.",
+    "s_text": 0.4204,
+    "s_visual": 0.2,
+    "visual_reliability": 0.6574,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 188.6,
+    "end": 190.6,
+    "text": "And hit the same two digit number again.",
+    "s_text": 0.5768,
+    "s_visual": 0.2,
+    "visual_reliability": 0.4616,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 190.6,
+    "end": 191.6,
+    "text": "And hit equals.",
+    "s_text": 0.4541,
+    "s_visual": 0.0007,
+    "visual_reliability": 0.7425,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 191.6,
+    "end": 192.6,
+    "text": "Okay.",
+    "s_text": 0.5441,
+    "s_visual": 0.0008,
+    "visual_reliability": 0.8128,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 192.6,
+    "end": 194.6,
+    "text": "Now, what you just did was you cubed a number.",
+    "s_text": 0.5164,
+    "s_visual": 0.0007,
+    "visual_reliability": 0.8235,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 194.6,
+    "end": 196.6,
+    "text": "You've been numbering multiple times itself three times.",
+    "s_text": 0.3992,
+    "s_visual": 0.2,
+    "visual_reliability": 0.6373,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 196.6,
+    "end": 197.6,
+    "text": "All right.",
+    "s_text": 0.5997,
+    "s_visual": 0.5046,
+    "visual_reliability": 0.6956,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 197.6,
+    "end": 200.6,
+    "text": "Now, what you got to do is tell me the answer you have on your screen.",
+    "s_text": 0.7171,
+    "s_visual": 0.0007,
+    "visual_reliability": 0.7827,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 200.6,
+    "end": 202.6,
+    "text": "And I'll try to tell you the number you started with.",
+    "s_text": 0.7235,
+    "s_visual": 0.0006,
+    "visual_reliability": 0.8173,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 202.6,
+    "end": 203.6,
+    "text": "It's called extracting a cube root.",
+    "s_text": 0.3594,
+    "s_visual": 0.0006,
+    "visual_reliability": 0.7885,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 203.6,
+    "end": 205.6,
+    "text": "And this is something I'll teach you a little bit later on.",
+    "s_text": 0.7177,
+    "s_visual": 0.0009,
+    "visual_reliability": 0.8121,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 205.6,
+    "end": 206.6,
+    "text": "Who's got an answer?",
+    "s_text": 0.2469,
+    "s_visual": 0.0007,
+    "visual_reliability": 0.8252,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 206.6,
+    "end": 207.6,
+    "text": "Anybody?",
+    "s_text": 0.2081,
+    "s_visual": 0.0008,
+    "visual_reliability": 0.8286,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 207.6,
+    "end": 208.6,
+    "text": "Okay.",
+    "s_text": 0.5441,
+    "s_visual": 0.0007,
+    "visual_reliability": 0.7961,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 208.6,
+    "end": 209.6,
+    "text": "What did you get?",
+    "s_text": 0.4714,
+    "s_visual": 0.1,
+    "visual_reliability": 0.5723,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 209.6,
+    "end": 210.6,
+    "text": "91.158.",
+    "s_text": 0.2386,
+    "s_visual": 0.1,
+    "visual_reliability": 0.1963,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 210.6,
+    "end": 211.6,
+    "text": "45.",
+    "s_text": 0.2605,
+    "s_visual": 0.1,
+    "visual_reliability": 0.0673,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 211.6,
+    "end": 212.6,
+    "text": "All right.",
+    "s_text": 0.5997,
+    "s_visual": 0.0009,
+    "visual_reliability": 0.593,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 212.6,
+    "end": 213.6,
+    "text": "Let's try another one.",
+    "s_text": 0.6146,
+    "s_visual": 0.0008,
+    "visual_reliability": 0.6886,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 213.6,
+    "end": 214.6,
+    "text": "Go ahead.",
+    "s_text": 0.52,
+    "s_visual": 0.0007,
+    "visual_reliability": 0.8787,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 214.6,
+    "end": 215.6,
+    "text": "What you get?",
+    "s_text": 0.4906,
+    "s_visual": 0.2,
+    "visual_reliability": 0.7251,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 215.6,
+    "end": 216.6,
+    "text": "41.952.",
+    "s_text": 0.1854,
+    "s_visual": 0.1,
+    "visual_reliability": 0.5051,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 216.6,
+    "end": 218.6,
+    "text": "That'd be 28.",
+    "s_text": 0.3708,
+    "s_visual": 0.1,
+    "visual_reliability": 0.3536,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 218.6,
+    "end": 219.6,
+    "text": "Yeah.",
+    "s_text": 0.3776,
+    "s_visual": 0.0007,
+    "visual_reliability": 0.4274,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 219.6,
+    "end": 220.6,
+    "text": "Okay.",
+    "s_text": 0.5441,
+    "s_visual": 0.2,
+    "visual_reliability": 0.5944,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 220.6,
+    "end": 221.6,
+    "text": "Let's try another one.",
+    "s_text": 0.6146,
+    "s_visual": 0.2,
+    "visual_reliability": 0.3528,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 221.6,
+    "end": 222.6,
+    "text": "Cool.",
+    "s_text": 0.2753,
+    "s_visual": 0.2,
+    "visual_reliability": 0.2003,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 222.6,
+    "end": 224.6,
+    "text": "11.331.",
+    "s_text": 0.1943,
+    "s_visual": 0.0,
+    "visual_reliability": 0.4311,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 224.6,
+    "end": 225.6,
+    "text": "11.",
+    "s_text": 0.3401,
+    "s_visual": 0.0009,
+    "visual_reliability": 0.5725,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 225.6,
+    "end": 226.6,
+    "text": "That one's an easy one.",
+    "s_text": 0.4725,
+    "s_visual": 0.0006,
+    "visual_reliability": 0.727,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 226.6,
+    "end": 227.6,
+    "text": "One more.",
+    "s_text": 0.5402,
+    "s_visual": 0.2,
+    "visual_reliability": 0.6605,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 227.6,
+    "end": 228.6,
+    "text": "Let's try one more.",
+    "s_text": 0.6421,
+    "s_visual": 0.0006,
+    "visual_reliability": 0.7395,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 228.6,
+    "end": 229.6,
+    "text": "Do you get one?",
+    "s_text": 0.4824,
+    "s_visual": 0.2,
+    "visual_reliability": 0.701,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 229.6,
+    "end": 231.6,
+    "text": "133.183.",
+    "s_text": 0.2074,
+    "s_visual": 0.0009,
+    "visual_reliability": 0.7391,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 231.6,
+    "end": 232.6,
+    "text": "47.",
+    "s_text": 0.2577,
+    "s_visual": 0.0009,
+    "visual_reliability": 0.7249,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 232.6,
+    "end": 234.6,
+    "text": "Okay.",
+    "s_text": 0.5441,
+    "s_visual": 0.0007,
+    "visual_reliability": 0.6815,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 234.6,
+    "end": 235.6,
+    "text": "Now, that's called a cube root.",
+    "s_text": 0.371,
+    "s_visual": 0.1,
+    "visual_reliability": 0.5373,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 235.6,
+    "end": 236.6,
+    "text": "That's really easy.",
+    "s_text": 0.3729,
+    "s_visual": 0.1,
+    "visual_reliability": 0.2797,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 236.6,
+    "end": 237.6,
+    "text": "I'll teach you how to do that.",
+    "s_text": 0.6771,
+    "s_visual": 0.2,
+    "visual_reliability": 0.4884,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 237.6,
+    "end": 240.6,
+    "text": "Now, everybody with your calculator, this is a little bit different.",
+    "s_text": 0.4006,
+    "s_visual": 0.2,
+    "visual_reliability": 0.3713,
+    "teaching_stage": "semantic"
+  }
+]

@@ -1,0 +1,45 @@
+{
+  "generated_at": "2026-09-18T16:52:58.296438",
+  "video": "lecture_02_trigonometry",
+  "data_type": "REAL (真實影片 + 人工標註)",
+  "annotator_count": 1,
+  "cohens_kappa": null,
+  "eval_range_sec": [
+    0.0,
+    240.92
+  ],
+  "ground_truth_count": 24,
+  "fusion_params": {
+    "alpha": 0.6,
+    "beta": 0.4
+  },
+  "results": {
+    "semantic": {
+      "mode": "semantic",
+      "recall": 0.5,
+      "precision": 0.8889,
+      "f1_score": 0.64,
+      "false_alarm_rate": 0.0706,
+      "time_saving_rate": 0.5589,
+      "selected_count": 9
+    },
+    "static": {
+      "mode": "static",
+      "recall": 0.5,
+      "precision": 0.8889,
+      "f1_score": 0.64,
+      "false_alarm_rate": 0.0706,
+      "time_saving_rate": 0.5589,
+      "selected_count": 9
+    },
+    "adaptive": {
+      "mode": "adaptive",
+      "recall": 0.5,
+      "precision": 0.8889,
+      "f1_score": 0.64,
+      "false_alarm_rate": 0.0706,
+      "time_saving_rate": 0.5589,
+      "selected_count": 9
+    }
+  }
+}

@@ -1,8 +1,9 @@
 """
 SBERT 語意相似度計算器
-- 使用 Sentence-BERT 計算 OCR 文字與 ASR 關鍵字的語意相似度
-- 降級備援：當 SBERT 模型載入失敗時，使用字元重疊率計算
-對應計畫書 4.2 步驟三
+
+計算 OCR 辨識文字與 ASR 關鍵字之間的語意相似度。
+使用 paraphrase-multilingual-MiniLM-L12-v2，支援中文。
+模型載入失敗時自動降級為字元重疊率計算。
 """
 
 import logging
@@ -53,9 +54,9 @@ def compute_char_overlap(text1: str, text2: str) -> float:
 class SBERTCalculator:
     """
     SBERT 語意相似度計算器
-    
-    使用 Sentence-BERT 計算 OCR 文字與 ASR 關鍵字之間的語意相似度。
-    當 SBERT 模型載入失敗時，自動降級為字元重疊率計算。
+
+    計算 OCR 文字與 ASR 關鍵字之間的語意相似度。
+    模型不可用時自動降級為字元重疊率計算。
     """
     
     def __init__(self, model_name: Optional[str] = None):

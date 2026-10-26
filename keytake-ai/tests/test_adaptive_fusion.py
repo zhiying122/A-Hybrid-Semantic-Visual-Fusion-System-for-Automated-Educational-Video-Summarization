@@ -3,7 +3,7 @@ Adaptive Fusion — Property-Based & Unit Tests
 ─────────────────────────────────────────────────────────────────────
 驗證 adaptive_fusion.py 的核心行為：
   1. fuse_scores() 結果永遠在 [0, 1]
-  2. visual_reliability=1.0 時等同靜態加權（向後兼容）
+  2. visual_reliability=1.0 時等同靜態加權
   3. visual_reliability=0.0 時退化為純語意（β_eff=0）
   4. semantic_sliding_window() 邊界條件
   5. grid_search_weights() 回傳合法的 α/β
@@ -80,7 +80,7 @@ class TestFuseScoresProperties:
     @settings(max_examples=50)
     @given(s_text=score_float(), s_visual=score_float(), alpha=score_float())
     def test_reliability_1_equals_static_fusion(self, s_text, s_visual, alpha):
-        """R_visual=1.0 時應等同靜態加權（向後兼容）"""
+        """R_visual=1.0 時應等同靜態加權"""
         beta = 1.0 - alpha
         static_score = alpha * s_text + beta * s_visual
         adaptive_score = fuse_scores(s_text, s_visual, alpha, beta, visual_reliability=1.0)

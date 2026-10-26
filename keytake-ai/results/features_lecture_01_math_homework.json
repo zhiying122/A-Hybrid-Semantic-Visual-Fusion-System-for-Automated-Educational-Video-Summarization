@@ -1,0 +1,686 @@
+[
+  {
+    "start": 0.0,
+    "end": 11.44,
+    "text": "Math homework got you down?",
+    "s_text": 0.3907,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 11.44,
+    "end": 13.4,
+    "text": "Do you have math questions?",
+    "s_text": 0.3173,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 13.4,
+    "end": 15.44,
+    "text": "Well we've got the answers.",
+    "s_text": 0.5552,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 15.44,
+    "end": 29.8,
+    "text": "It's the Math homework hotline show with your math experts Tammy Rush and Hannah Hanna.",
+    "s_text": 0.6003,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 29.8,
+    "end": 32.16,
+    "text": "Good evening everyone and welcome to Math homework hotline.",
+    "s_text": 0.4478,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 32.16,
+    "end": 33.16,
+    "text": "I'm Tammy Rush.",
+    "s_text": 0.1897,
+    "s_visual": 0.1,
+    "visual_reliability": 0.0935,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 33.16,
+    "end": 34.84,
+    "text": "And I'm Hannah Hanna.",
+    "s_text": 0.3397,
+    "s_visual": 0.1,
+    "visual_reliability": 0.1875,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 34.84,
+    "end": 38.5,
+    "text": "And we want to welcome you to our show tonight by reminding you that our show is designed",
+    "s_text": 0.676,
+    "s_visual": 0.1,
+    "visual_reliability": 0.1541,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 38.5,
+    "end": 43.32,
+    "text": "just for you to help you with your math homework and our phone lines are open.",
+    "s_text": 0.6512,
+    "s_visual": 0.0117,
+    "visual_reliability": 0.6903,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 43.32,
+    "end": 44.4,
+    "text": "Keep our teachers busy.",
+    "s_text": 0.4476,
+    "s_visual": 0.2,
+    "visual_reliability": 0.5194,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 44.4,
+    "end": 46.6,
+    "text": "That phone number is right across the bottom of your screen.",
+    "s_text": 0.5543,
+    "s_visual": 0.2,
+    "visual_reliability": 0.3182,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 46.6,
+    "end": 50.64,
+    "text": "It is 840-7260.",
+    "s_text": 0.3834,
+    "s_visual": 0.5259,
+    "visual_reliability": 0.787,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 50.64,
+    "end": 52.12,
+    "text": "So give us a call.",
+    "s_text": 0.4626,
+    "s_visual": 0.4532,
+    "visual_reliability": 0.7294,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 52.12,
+    "end": 56.92,
+    "text": "And Hannah and I would be happy to work a problem out for you so you can watch it at home",
+    "s_text": 0.6739,
+    "s_visual": 0.2,
+    "visual_reliability": 0.5191,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 56.92,
+    "end": 59.08,
+    "text": "while we're doing it here in the studio.",
+    "s_text": 0.6355,
+    "s_visual": 0.2,
+    "visual_reliability": 0.4382,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 59.08,
+    "end": 61.16,
+    "text": "You can see it live on your television.",
+    "s_text": 0.5594,
+    "s_visual": 0.2,
+    "visual_reliability": 0.3728,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 61.16,
+    "end": 64.8,
+    "text": "And if you have to be away from your TV for some reason and you're in your room maybe",
+    "s_text": 0.5631,
+    "s_visual": 0.1642,
+    "visual_reliability": 0.4294,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 64.8,
+    "end": 66.36,
+    "text": "looking on the internet, guess what?",
+    "s_text": 0.4494,
+    "s_visual": 0.4385,
+    "visual_reliability": 0.6856,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 66.36,
+    "end": 67.52,
+    "text": "You can find us there too.",
+    "s_text": 0.5751,
+    "s_visual": 0.0113,
+    "visual_reliability": 0.7822,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 67.52,
+    "end": 71.6,
+    "text": "We're live on the internet and you can find us at that website right along the bottom",
+    "s_text": 0.6812,
+    "s_visual": 0.1,
+    "visual_reliability": 0.4509,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 71.6,
+    "end": 72.6,
+    "text": "of your screen.",
+    "s_text": 0.5201,
+    "s_visual": 0.1,
+    "visual_reliability": 0.221,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 72.6,
+    "end": 76.92,
+    "text": "It's mhh.mysthc.org.",
+    "s_text": 0.3747,
+    "s_visual": 0.1,
+    "visual_reliability": 0.0758,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 76.92,
+    "end": 80.44,
+    "text": "So go ahead and catch us on the internet and tell your family and friends you don't live",
+    "s_text": 0.6085,
+    "s_visual": 0.1,
+    "visual_reliability": 0.1247,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 80.44,
+    "end": 82.52,
+    "text": "in our area about it as well.",
+    "s_text": 0.5342,
+    "s_visual": 0.1,
+    "visual_reliability": 0.4036,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 82.52,
+    "end": 84.68,
+    "text": "Tonight we have a fabulous show planned for you.",
+    "s_text": 0.5209,
+    "s_visual": 0.1,
+    "visual_reliability": 0.2825,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 84.68,
+    "end": 85.72,
+    "text": "It's one of our favorites.",
+    "s_text": 0.4911,
+    "s_visual": 0.1,
+    "visual_reliability": 0.0969,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 85.72,
+    "end": 89.88,
+    "text": "It's still working with integers as we've done before in the past but this time it's",
+    "s_text": 0.5399,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 89.88,
+    "end": 94.72,
+    "text": "positive and signed fractions meaning that we're going to be working with operations with",
+    "s_text": 0.684,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 94.72,
+    "end": 99.36,
+    "text": "positive and negative numbers related to those fractions.",
+    "s_text": 0.4981,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 99.36,
+    "end": 102.84,
+    "text": "And those of you that are loyal watchers, you know what comes next.",
+    "s_text": 0.6297,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 102.84,
+    "end": 106.08,
+    "text": "Yes, it is time for Hannah to share that challenge question.",
+    "s_text": 0.6112,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 106.08,
+    "end": 108.0,
+    "text": "So we're going to take it over to Hannah.",
+    "s_text": 0.6109,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 108.0,
+    "end": 109.0,
+    "text": "Well thank you Tammy.",
+    "s_text": 0.386,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 109.0,
+    "end": 110.52,
+    "text": "Here's the challenge question everybody.",
+    "s_text": 0.4397,
+    "s_visual": 0.1,
+    "visual_reliability": 0.0699,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 110.52,
+    "end": 112.6,
+    "text": "Take an out of it and give it a shot.",
+    "s_text": 0.5862,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 112.6,
+    "end": 115.04,
+    "text": "I know you can do it.",
+    "s_text": 0.6082,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 115.04,
+    "end": 117.6,
+    "text": "And here it's three, three less hollows.",
+    "s_text": 0.4968,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 117.6,
+    "end": 125.68,
+    "text": "Find the sum of the two fractions that are less than one fifth and greater than one sixth",
+    "s_text": 0.5549,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 125.68,
+    "end": 128.04,
+    "text": "with denominator 90.",
+    "s_text": 0.3586,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 128.04,
+    "end": 131.32,
+    "text": "We put a little restriction there, denominator 90.",
+    "s_text": 0.3524,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 131.32,
+    "end": 132.6,
+    "text": "So let me read it one more time.",
+    "s_text": 0.5136,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 132.6,
+    "end": 134.04,
+    "text": "I hope you write it down.",
+    "s_text": 0.5775,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 134.04,
+    "end": 139.12,
+    "text": "It says find the sum and we all know what the word sum is for of the two fractions that",
+    "s_text": 0.7266,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 139.12,
+    "end": 144.64,
+    "text": "are less than one fifth and greater than one sixth with denominator 90.",
+    "s_text": 0.3762,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 144.64,
+    "end": 146.24,
+    "text": "I know you can do it.",
+    "s_text": 0.6082,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 146.24,
+    "end": 150.2,
+    "text": "And you know what to do after you get the right answer, you call the number and you would",
+    "s_text": 0.5712,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 150.2,
+    "end": 152.24,
+    "text": "be probably our winner for tonight.",
+    "s_text": 0.4851,
+    "s_visual": 0.483,
+    "visual_reliability": 0.5492,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 152.24,
+    "end": 154.28,
+    "text": "We're waiting for your call.",
+    "s_text": 0.5265,
+    "s_visual": 0.2,
+    "visual_reliability": 0.4556,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 154.28,
+    "end": 156.28,
+    "text": "Hopefully with the right answer.",
+    "s_text": 0.5466,
+    "s_visual": 0.2,
+    "visual_reliability": 0.323,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 156.28,
+    "end": 157.28,
+    "text": "All right.",
+    "s_text": 0.3268,
+    "s_visual": 0.1,
+    "visual_reliability": 0.1108,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 157.28,
+    "end": 158.28,
+    "text": "Tammy.",
+    "s_text": 0.2108,
+    "s_visual": 0.1,
+    "visual_reliability": 0.0809,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 158.28,
+    "end": 159.28,
+    "text": "All right.",
+    "s_text": 0.3268,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 159.28,
+    "end": 161.4,
+    "text": "Bing Santa and while we're waiting for your phone calls and while you're working on that",
+    "s_text": 0.6598,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 161.4,
+    "end": 164.44,
+    "text": "challenge question, we're going to take a look at our topic tonight and we're going",
+    "s_text": 0.6465,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 164.44,
+    "end": 165.44,
+    "text": "to start off a little slow.",
+    "s_text": 0.3558,
+    "s_visual": 0.0014,
+    "visual_reliability": 0.3238,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 165.44,
+    "end": 169.44,
+    "text": "We're going to go ahead and take it with those decimals and how they're related to fractions",
+    "s_text": 0.7504,
+    "s_visual": 0.2,
+    "visual_reliability": 0.4426,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 169.44,
+    "end": 172.0,
+    "text": "and fractions and how they're related to decimals.",
+    "s_text": 0.5785,
+    "s_visual": 0.2,
+    "visual_reliability": 0.2784,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 172.0,
+    "end": 175.28,
+    "text": "So let's go ahead and take a look what I have planned on our board.",
+    "s_text": 0.6187,
+    "s_visual": 0.1,
+    "visual_reliability": 0.1879,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 175.28,
+    "end": 179.56,
+    "text": "Talking about fractions, there is a relationship between the fraction and the decimal.",
+    "s_text": 0.544,
+    "s_visual": 0.1,
+    "visual_reliability": 0.0644,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 179.56,
+    "end": 184.84,
+    "text": "So when we look at four fists, we can actually divide that out and find out what its decimal",
+    "s_text": 0.5917,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 184.84,
+    "end": 186.28,
+    "text": "equivalent is.",
+    "s_text": 0.5555,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 186.28,
+    "end": 192.24,
+    "text": "So I always want to remind you that when you set this up, you're going to be dividing",
+    "s_text": 0.6795,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 192.24,
+    "end": 195.24,
+    "text": "the five into the four.",
+    "s_text": 0.4307,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 195.24,
+    "end": 199.68,
+    "text": "And as soon as you see that, you go, well, surely she knows that five won't go into four.",
+    "s_text": 0.5447,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 199.76,
+    "end": 202.24,
+    "text": "Surely she knows that, of course I do.",
+    "s_text": 0.4806,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 202.24,
+    "end": 207.24,
+    "text": "I'm going to need to put a decimal here and then you also remember that when you add",
+    "s_text": 0.5905,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 207.24,
+    "end": 211.6,
+    "text": "a decimal, any zeros you add behind it, or it's not going to change the value.",
+    "s_text": 0.5419,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 211.6,
+    "end": 213.76,
+    "text": "I think I've said this on the show before.",
+    "s_text": 0.4599,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 213.76,
+    "end": 219.08,
+    "text": "If you're 13 years old, you don't walk around going, hi, I'm 13.0 years old.",
+    "s_text": 0.4627,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 219.08,
+    "end": 221.16,
+    "text": "We know that that point zero is there.",
+    "s_text": 0.5429,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 221.16,
+    "end": 223.12,
+    "text": "We just don't need to say it all the time.",
+    "s_text": 0.6097,
+    "s_visual": 0.1,
+    "visual_reliability": 0.3105,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 223.12,
+    "end": 226.88,
+    "text": "So if we take a look at this problem and we're going to work it out, we didn't have enough",
+    "s_text": 0.6245,
+    "s_visual": 0.1,
+    "visual_reliability": 0.2174,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 226.88,
+    "end": 229.92,
+    "text": "places to divide five into four.",
+    "s_text": 0.4273,
+    "s_visual": 0.1,
+    "visual_reliability": 0.0746,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 229.92,
+    "end": 234.12,
+    "text": "So we're going to add a decimal, not changing the value at all, adding a zero.",
+    "s_text": 0.5364,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 234.12,
+    "end": 236.56,
+    "text": "And then I'm going to go ahead and stop there because I've had a little foresight here",
+    "s_text": 0.6131,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 236.56,
+    "end": 239.76,
+    "text": "and seeing that I know that five will go into 40.",
+    "s_text": 0.4959,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  }
+]

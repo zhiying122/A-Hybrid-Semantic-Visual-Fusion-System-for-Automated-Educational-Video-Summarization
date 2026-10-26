@@ -1,11 +1,9 @@
 """
-SRGAN 超解析度模組（延伸功能）
-對應計畫書 4.2 步驟三：
-對 ROI 進行影像增強，解決板書模糊問題
-將運算資源集中於關鍵區域，預期較全畫面處理提升 40% 以上效率
+影像超解析度增強模組
 
-架構：使用預訓練的 Real-ESRGAN（輕量版）作為超解析度後端
-若 GPU 不可用則自動降級為 OpenCV bicubic 插值
+偵測 ROI 是否模糊（Laplacian 變異數），
+模糊時以 Real-ESRGAN 進行超解析度增強；
+Real-ESRGAN 不可用時退化為 OpenCV bicubic 插值。
 """
 
 import cv2

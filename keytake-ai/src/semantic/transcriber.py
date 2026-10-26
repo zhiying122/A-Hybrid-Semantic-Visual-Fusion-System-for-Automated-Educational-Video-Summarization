@@ -1,17 +1,9 @@
 """
-步驟二（前半）：OpenAI Whisper 語音轉錄
-- 本地模式（預設）：使用本機 Whisper 模型，完全離線
-- 遠端模式：使用 OpenAI Whisper API，速度快 10 倍以上
-- 內建 Whisper 幻覺過濾：合併連續重複片段
+語音轉錄模組
 
-切換方式（在啟動 uvicorn 前設定環境變數）：
-  # 本地跑（預設，不需設定任何環境變數）
-  uvicorn src.platform.api:app --reload
-
-  # 遠端 Whisper API（需要 OpenAI API Key）
-  set WHISPER_MODE=remote
-  set OPENAI_API_KEY=sk-...
-  uvicorn src.platform.api:app --reload
+以 Whisper 將教學影片音訊轉為帶時間戳的片段列表。
+支援本地模式（離線）與遠端 OpenAI API 模式，透過環境變數 WHISPER_MODE 切換。
+內建重複片段合併，過濾長時間靜音造成的幻覺輸出。
 """
 
 import os

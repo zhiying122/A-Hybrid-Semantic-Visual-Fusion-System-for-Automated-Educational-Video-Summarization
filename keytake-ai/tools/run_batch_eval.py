@@ -1,7 +1,7 @@
 """
 批次評估腳本
-對 30 部測試影片跑完整 pipeline 並輸出 Recall / BERTScore / TSR 報告
-對應計畫書 4.4 量化成效評估
+
+對多部測試影片跑完整 pipeline 並輸出 Recall / BERTScore / TSR 報告。
 
 用法：
   cd keytake-ai

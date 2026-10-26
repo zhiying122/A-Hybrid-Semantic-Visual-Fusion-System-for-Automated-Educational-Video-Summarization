@@ -141,11 +141,11 @@ def test_adaptive_fusion():
     selected = semantic_sliding_window(segments, adaptive_scores)
     assert isinstance(selected, list)
     print(f"  ✓ 融合正常，{len(segments)} 段 → 選取 {len(selected)} 段")
-    print(f"  ✓ 向後兼容確認：R=1.0 時 {s1:.4f} == {s2:.4f}")
+    print(f"  ✓ R=1.0 時靜態加權驗證：{s1:.4f} == {s2:.4f}")
 
 
 def test_visual_reliability():
-    """測試視覺可靠度估測器（v2 新增）"""
+    """測試視覺可靠度估測器"""
     print("\n[Test] VisualReliabilityEstimator...")
     from src.visual.visual_reliability import (
         VisualReliabilityEstimator, ReliabilitySignals, build_signals_from_tracker_result

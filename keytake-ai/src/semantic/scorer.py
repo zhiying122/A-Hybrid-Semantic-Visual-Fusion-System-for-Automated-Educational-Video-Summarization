@@ -1,37 +1,20 @@
 """
-步驟二（後半）：三軌語意評分機制 (v4)
-─────────────────────────────────────────────────────────────────────
-v4 重大升級：LLM 深度教學結構理解
+語意評分模組
 
-v3 做法：LLM 只回傳一個 0~1 的數字
-v4 做法：LLM 同時輸出：
-  1. 重要性分數 (0~1)
-  2. 教學階段類型 (definition / derivation / example / summary / transition / qa)
-  3. 一句摘要說明（中文）
-  4. 全課結構分析：generate_course_summary() 一次掌握整堂課脈絡
+對 Whisper 轉錄的片段計算教學重要性分數（s_text ∈ [0,1]）。
+支援三種評分模式，透過環境變數 SEMANTIC_SCORER_MODE 切換：
 
-教學階段定義：
-  - definition   : 定義核心概念（分數加乘 ×1.1）
-  - derivation   : 公式推導或定理證明（最重要，分數加乘 ×1.2）
-  - example      : 舉例說明（分數加乘 ×1.0）
-  - summary      : 總結回顧（分數加乘 ×1.1）
-  - transition   : 換場或過渡語（分數下壓 ×0.3）
-  - qa           : 問答互動（分數加乘 ×0.8）
+  sbert  — Sentence-BERT 語意相似度（預設，離線可用）
+  llm    — 大型語言模型，同時輸出重要性分數、教學階段與片段摘要
+  tfidf  — TF-IDF 關鍵詞權重（最輕量）
 
-支援的 LLM 後端：
-  - OpenAI（GPT-4o-mini / GPT-4o）：最準，費用約 $0.001/片段
-  - 本地 Ollama（Llama3 / Gemma）：免費，需自行架設
-  - Groq API（Llama3-8B-instant）：免費，速度快
+LLM 模式支援 OpenAI、Groq、Ollama 三種後端（設定於 .env）。
 
-使用方式：
-  在 .env 設定環境變數：
-    SEMANTIC_SCORER_MODE=llm    # llm / sbert / tfidf
-    LLM_BACKEND=openai          # openai / ollama / groq
-    OPENAI_API_KEY=sk-xxx       # OpenAI 才需要
-    GROQ_API_KEY=gsk_xxx        # Groq 才需要
-    OLLAMA_URL=http://localhost:11434  # Ollama 本地端點
+教學階段類型（LLM 模式輸出）：
+  definition / derivation / example / summary / transition / qa
 
-對應計畫書 4.2 步驟二
+各階段對應分數加乘係數，讓公式推導（×1.2）與概念定義（×1.1）獲得適當提升，
+過渡語句（×0.3）自動下壓。
 """
 
 import json
@@ -88,7 +71,7 @@ STAGE_WEIGHT = {
 }
 
 
-# ── 提示模板 v4：結構化 JSON 輸出 ────────────────────────
+# ── LLM 提示模板：結構化 JSON 輸出 ──────────────────────
 LLM_PROMPT_TEMPLATE = """你是教學影片智能分析助手。以下是一段課堂逐字稿片段。
 
 請分析這段文字並以 JSON 格式回答，格式如下：
@@ -135,22 +118,17 @@ COURSE_SUMMARY_PROMPT = """你是教學影片課程分析師。以下是一堂�
 
 class SemanticScorer:
     """
-    三模式語意評分器（v4）
-
-    v4 新增：
-      - LLM 模式輸出結構化 JSON（分數 + 教學階段 + 一句摘要）
-      - generate_course_summary()：全課結構分析
-      - 各教學階段加乘係數
+    語意評分器，支援 SBERT / LLM / TF-IDF 三種模式。
 
     模式選擇優先順序：
-      1. 環境變數 SEMANTIC_SCORER_MODE（llm / sbert / tfidf）
-      2. 若 LLM API key 有設定 → 自動用 llm 模式
-      3. 降級為 sbert（預設）
+      1. 環境變數 SEMANTIC_SCORER_MODE
+      2. 若偵測到 LLM API key，自動切換為 llm 模式
+      3. 預設使用 sbert 模式
 
     Args:
-        prompt_corpus: SBERT 模式用的教學提示語料庫（向後兼容 v2）
+        prompt_corpus: SBERT 模式的教學提示語料庫
         mode:          強制指定模式（覆蓋環境變數）
-        llm_backend:   LLM 後端選擇（openai / ollama / groq）
+        llm_backend:   LLM 後端（openai / groq / ollama）
     """
 
     def __init__(
@@ -163,10 +141,8 @@ class SemanticScorer:
         self.mode = mode or os.getenv("SEMANTIC_SCORER_MODE", "sbert").lower()
         self.llm_backend = llm_backend or os.getenv("LLM_BACKEND", "openai").lower()
 
-        # v5：初始化 LLM 快取
         self._cache = LLMCache()
 
-        # 如果環境變數有 API key，自動切換到 llm 模式
         if self.mode == "sbert" and self._has_llm_key():
             self.mode = "llm"
             print("[SemanticScorer] 偵測到 LLM API key，自動切換至 LLM 模式")
@@ -239,11 +215,12 @@ class SemanticScorer:
 
     def score(self, segments: list[dict], alpha_tfidf: float = 0.5) -> list[dict]:
         """
-        對所有片段評分，回傳帶有 s_text、teaching_stage、stage_label、segment_summary 的列表
+        對所有片段評分，在每個 dict 中加入 s_text、teaching_stage、
+        stage_label、segment_summary 欄位。
 
         Args:
             segments:     Whisper 轉錄的片段列表
-            alpha_tfidf:  TF-IDF 權重（只在 sbert 模式混合時用到）
+            alpha_tfidf:  SBERT 模式下 TF-IDF 的混合比例
         """
         if self.mode == "llm":
             scores, stages, summaries = self._llm_scores(segments)
@@ -267,18 +244,14 @@ class SemanticScorer:
 
     def generate_course_summary(self, segments: list[dict]) -> dict:
         """
-        v4 新增：全課結構分析，回傳課程標題、摘要、關鍵概念
+        對整堂課進行結構分析，回傳課程標題、摘要與關鍵概念。
+        僅 LLM 模式會呼叫 API；其他模式從高分片段拼湊基本結果。
 
         Args:
-            segments: 已評分的片段列表（帶有 text、start 欄位）
+            segments: 已評分的片段列表（需含 text、start 欄位）
 
         Returns:
-            {
-              "title": str,
-              "summary": str,
-              "key_concepts": list[str],
-              "structure": list[dict]
-            }
+            {"title": str, "summary": str, "key_concepts": list, "structure": list}
         """
         if self.mode != "llm":
             # 非 LLM 模式：從高分片段拼湊
@@ -317,13 +290,11 @@ class SemanticScorer:
             "structure": [],
         }
 
-    # ─────────────────────────────────────────────────────────────────
-    # LLM 評分（v4：結構化 JSON 輸出）
-    # ─────────────────────────────────────────────────────────────────
+    # ── LLM 評分 ──────────────────────────────────────────────────
 
     def _llm_scores(self, segments: list[dict]) -> tuple[np.ndarray, list[str], list[str]]:
         """
-        v4：LLM 對每個片段同時輸出分數、教學階段、摘要句
+        LLM 對每個片段輸出結構化評分（分數、教學階段、摘要句）。
 
         Returns:
             (scores, stages, summaries)
@@ -341,8 +312,7 @@ class SemanticScorer:
                 result = self._query_llm_structured(text)
                 raw_score = float(np.clip(result.get("score", 0.5), 0.0, 1.0))
 
-                # 只有 LLM 明確提供合法教學階段時，才套用階段加乘係數；
-                # 若 LLM 只回傳裸分數（無 stage），分數原樣通過，避免被誤乘權重。
+                # 若 LLM 回傳合法教學階段，套用階段加乘係數；否則分數原樣通過
                 explicit_stage = result.get("stage")
                 if explicit_stage in TEACHING_STAGE_TYPES:
                     stage = explicit_stage
@@ -361,14 +331,13 @@ class SemanticScorer:
                 summaries[i] = text[:20]
             time.sleep(0.05)  # 避免 rate limit
 
-        # v5：確保快取寫入磁碟
+        # 確保快取寫入磁碟
         self._cache.flush()
-
         return scores, stages, summaries
 
     def _query_llm_structured(self, text: str) -> dict:
-        """v4：呼叫 LLM 取得結構化 JSON（分數 + 階段 + 摘要），v5：含快取"""
-        # v5：先查快取
+        """呼叫 LLM 取得結構化 JSON（分數 + 教學階段 + 摘要），結果寫入快取。"""
+        # 先查快取
         cached = self._cache.get(text)
         if cached is not None:
             return cached
@@ -377,12 +346,10 @@ class SemanticScorer:
         raw = self._call_llm_raw(prompt, max_tokens=80)
         result = _parse_json_safe(raw)
         if result and "score" in result:
-            # v5：存入快取
             self._cache.put(text, result)
             return result
-        # 降級：嘗試只提取數字（僅接受 0~1 的小數或 0/1，避免誤抓中文中的數字）
+        # 降級：從原始回應提取數字
         match = re.search(r"0?\.\d+|\b[01]\b", raw)
-        # 不設定 stage，讓 _llm_scores 以「無明確階段」處理（分數原樣通過，不套加乘）
         fallback_result = {
             "score": float(match.group()) if match else 0.5,
             "summary": text[:20],
@@ -416,13 +383,11 @@ class SemanticScorer:
         return "{}"
 
     def _query_llm(self, text: str) -> float:
-        """向後兼容舊版介面（只回傳分數）"""
+        """回傳單一重要性分數（相容舊版介面）。"""
         result = self._query_llm_structured(text)
         return result.get("score", 0.5)
 
-    # ─────────────────────────────────────────────────────────────────
-    # SBERT / TF-IDF 評分（向後兼容 v2）
-    # ─────────────────────────────────────────────────────────────────
+    # ── SBERT / TF-IDF 評分 ────────────────────────────────────────
 
     def tfidf_scores(self, segments: list[dict]) -> np.ndarray:
         """對所有片段文字計算 TF-IDF，回傳每個片段的加總權重分數"""

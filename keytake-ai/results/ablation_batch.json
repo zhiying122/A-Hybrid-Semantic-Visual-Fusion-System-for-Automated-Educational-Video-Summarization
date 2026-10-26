@@ -1,0 +1,211 @@
+{
+  "generated_at": "2026-09-18T16:58:51.264654",
+  "data_type": "REAL (真實影片 + 人工標註)",
+  "n_videos": 4,
+  "fusion_params": {
+    "alpha": 0.6,
+    "beta": 0.4
+  },
+  "aggregate": {
+    "semantic": {
+      "recall": {
+        "mean": 0.4764,
+        "std": 0.0165
+      },
+      "precision": {
+        "mean": 0.7349,
+        "std": 0.1695
+      },
+      "f1_score": {
+        "mean": 0.5706,
+        "std": 0.0679
+      },
+      "false_alarm_rate": {
+        "mean": 0.1247,
+        "std": 0.0442
+      },
+      "time_saving_rate": {
+        "mean": 0.4365,
+        "std": 0.0778
+      }
+    },
+    "static": {
+      "recall": {
+        "mean": 0.5472,
+        "std": 0.0685
+      },
+      "precision": {
+        "mean": 0.7805,
+        "std": 0.1474
+      },
+      "f1_score": {
+        "mean": 0.6318,
+        "std": 0.0634
+      },
+      "false_alarm_rate": {
+        "mean": 0.0995,
+        "std": 0.0359
+      },
+      "time_saving_rate": {
+        "mean": 0.3948,
+        "std": 0.1253
+      }
+    },
+    "adaptive": {
+      "recall": {
+        "mean": 0.4685,
+        "std": 0.0268
+      },
+      "precision": {
+        "mean": 0.7222,
+        "std": 0.1832
+      },
+      "f1_score": {
+        "mean": 0.5589,
+        "std": 0.0778
+      },
+      "false_alarm_rate": {
+        "mean": 0.1129,
+        "std": 0.0378
+      },
+      "time_saving_rate": {
+        "mean": 0.4297,
+        "std": 0.0792
+      }
+    }
+  },
+  "per_video": [
+    {
+      "video": "lecture_01_math_homework",
+      "annotator_count": 1,
+      "cohens_kappa": null,
+      "ground_truth_count": 31,
+      "eval_range_sec": [
+        0.0,
+        239.76
+      ],
+      "results": {
+        "semantic": {
+          "recall": 0.4839,
+          "precision": 0.75,
+          "f1_score": 0.5882,
+          "false_alarm_rate": 0.1386,
+          "time_saving_rate": 0.4256
+        },
+        "static": {
+          "recall": 0.6129,
+          "precision": 0.9091,
+          "f1_score": 0.7322,
+          "false_alarm_rate": 0.0594,
+          "time_saving_rate": 0.4119
+        },
+        "adaptive": {
+          "recall": 0.4839,
+          "precision": 0.8333,
+          "f1_score": 0.6122,
+          "false_alarm_rate": 0.0868,
+          "time_saving_rate": 0.4151
+        }
+      }
+    },
+    {
+      "video": "lecture_02_trigonometry",
+      "annotator_count": 1,
+      "cohens_kappa": null,
+      "ground_truth_count": 24,
+      "eval_range_sec": [
+        0.0,
+        240.92
+      ],
+      "results": {
+        "semantic": {
+          "recall": 0.5,
+          "precision": 0.8889,
+          "f1_score": 0.64,
+          "false_alarm_rate": 0.0706,
+          "time_saving_rate": 0.5589
+        },
+        "static": {
+          "recall": 0.5,
+          "precision": 0.8889,
+          "f1_score": 0.64,
+          "false_alarm_rate": 0.0706,
+          "time_saving_rate": 0.5589
+        },
+        "adaptive": {
+          "recall": 0.5,
+          "precision": 0.8889,
+          "f1_score": 0.64,
+          "false_alarm_rate": 0.0706,
+          "time_saving_rate": 0.5589
+        }
+      }
+    },
+    {
+      "video": "lecture_03_mental_math",
+      "annotator_count": 1,
+      "cohens_kappa": null,
+      "ground_truth_count": 63,
+      "eval_range_sec": [
+        0.0,
+        240.6
+      ],
+      "results": {
+        "semantic": {
+          "recall": 0.4603,
+          "precision": 0.8462,
+          "f1_score": 0.5963,
+          "false_alarm_rate": 0.1007,
+          "time_saving_rate": 0.4188
+        },
+        "static": {
+          "recall": 0.4603,
+          "precision": 0.7857,
+          "f1_score": 0.5805,
+          "false_alarm_rate": 0.1215,
+          "time_saving_rate": 0.4022
+        },
+        "adaptive": {
+          "recall": 0.4286,
+          "precision": 0.75,
+          "f1_score": 0.5455,
+          "false_alarm_rate": 0.1254,
+          "time_saving_rate": 0.4012
+        }
+      }
+    },
+    {
+      "video": "test_10min",
+      "annotator_count": 1,
+      "cohens_kappa": null,
+      "ground_truth_count": 13,
+      "eval_range_sec": [
+        0.0,
+        230.08
+      ],
+      "results": {
+        "semantic": {
+          "recall": 0.4615,
+          "precision": 0.4545,
+          "f1_score": 0.458,
+          "false_alarm_rate": 0.1888,
+          "time_saving_rate": 0.3428
+        },
+        "static": {
+          "recall": 0.6154,
+          "precision": 0.5385,
+          "f1_score": 0.5744,
+          "false_alarm_rate": 0.1467,
+          "time_saving_rate": 0.2062
+        },
+        "adaptive": {
+          "recall": 0.4615,
+          "precision": 0.4167,
+          "f1_score": 0.438,
+          "false_alarm_rate": 0.1686,
+          "time_saving_rate": 0.3437
+        }
+      }
+    }
+  ]
+}

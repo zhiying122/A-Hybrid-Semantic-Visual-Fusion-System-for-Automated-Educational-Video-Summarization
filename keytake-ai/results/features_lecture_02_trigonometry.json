@@ -1,0 +1,299 @@
+[
+  {
+    "start": 60.0,
+    "end": 67.12,
+    "text": "Alright, we need to go over your homework here in Section 7.3, which was in your book",
+    "s_text": 0.5525,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 67.12,
+    "end": 71.52,
+    "text": "starting on page 355, 356, and 357.",
+    "s_text": 0.3681,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 71.52,
+    "end": 75.4,
+    "text": "So let's look at problem number 81 here to start with.",
+    "s_text": 0.4975,
+    "s_visual": 0.1,
+    "visual_reliability": 0.063,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 75.4,
+    "end": 82.32,
+    "text": "And this is in your book here, oops, I got hit the right thing, in your book on page",
+    "s_text": 0.7201,
+    "s_visual": 0.1,
+    "visual_reliability": 0.2335,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 82.32,
+    "end": 83.96,
+    "text": "357.",
+    "s_text": 0.2068,
+    "s_visual": 0.1,
+    "visual_reliability": 0.1635,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 83.96,
+    "end": 89.96,
+    "text": "Number 81 on page 357.",
+    "s_text": 0.1905,
+    "s_visual": 0.1,
+    "visual_reliability": 0.0561,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 89.96,
+    "end": 100.4,
+    "text": "Alright, so what you've got is two forces, a large van, let's see, tow forces, oh wait",
+    "s_text": 0.7235,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 100.4,
+    "end": 105.8,
+    "text": "can you read, a large van has creamed off of the road into a ditch and two tow trucks",
+    "s_text": 0.561,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 105.8,
+    "end": 107.72,
+    "text": "are attempting to winch it out.",
+    "s_text": 0.5122,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 107.72,
+    "end": 111.88,
+    "text": "The cable from the first winch exerts a force of 900 pounds while the cable from the second",
+    "s_text": 0.3695,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 111.88,
+    "end": 114.08,
+    "text": "exerts a force of 700 pounds.",
+    "s_text": 0.2709,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 114.08,
+    "end": 118.32,
+    "text": "Determine the angle theta for the first tow truck that will bring the van directly",
+    "s_text": 0.4387,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 118.32,
+    "end": 121.16,
+    "text": "out of the ditch and along the line indicate it.",
+    "s_text": 0.6234,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 121.16,
+    "end": 126.76,
+    "text": "So what you've got here is if we look at this, we've got, we're trying to pull this",
+    "s_text": 0.8276,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 126.76,
+    "end": 140.2,
+    "text": "van out of the ditch.",
+    "s_text": 0.465,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 140.2,
+    "end": 144.36,
+    "text": "And we've got two forces here, right, and we've got the first, I'm going to put tow",
+    "s_text": 0.7096,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 144.36,
+    "end": 149.28,
+    "text": "one for the first tow line and tow two for the second, or T sub two for the second tow",
+    "s_text": 0.607,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 149.28,
+    "end": 150.28,
+    "text": "line.",
+    "s_text": 0.4358,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 150.28,
+    "end": 155.08,
+    "text": "Alright, now when you look at this, we know that this is 32 and actually they use W's",
+    "s_text": 0.558,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 155.08,
+    "end": 158.64,
+    "text": "normally, so I'll use what they did, not to confuse you.",
+    "s_text": 0.5911,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 158.64,
+    "end": 167.24,
+    "text": "This was 32 degrees, right, and we're trying to find angle theta.",
+    "s_text": 0.5252,
+    "s_visual": 0.1,
+    "visual_reliability": 0.0699,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 167.24,
+    "end": 176.36,
+    "text": "So we know that the work here is 900 watt pounds and what's the work here.",
+    "s_text": 0.5944,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 176.36,
+    "end": 181.64,
+    "text": "So is everybody with me to there?",
+    "s_text": 0.5339,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 181.64,
+    "end": 191.36,
+    "text": "So for W one up here, this would end up being 900, the cosine of theta and for W two,",
+    "s_text": 0.6294,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 191.36,
+    "end": 198.36,
+    "text": "because what I'm doing here is I'm finding that watt.",
+    "s_text": 0.5283,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 198.36,
+    "end": 202.32,
+    "text": "It's going to be finding my vertical component.",
+    "s_text": 0.4105,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 202.32,
+    "end": 203.32,
+    "text": "Give me a minute.",
+    "s_text": 0.4965,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 203.32,
+    "end": 205.32,
+    "text": "Let me write out what I'm writing here.",
+    "s_text": 0.6296,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 205.32,
+    "end": 207.72,
+    "text": "I don't know why I did the problem this way.",
+    "s_text": 0.4797,
+    "s_visual": 0.1,
+    "visual_reliability": 0.1599,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 207.72,
+    "end": 212.44,
+    "text": "The cosine of 32.",
+    "s_text": 0.4128,
+    "s_visual": 0.1,
+    "visual_reliability": 0.0548,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 212.44,
+    "end": 216.92,
+    "text": "Give me a minute.",
+    "s_text": 0.4965,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 216.92,
+    "end": 233.92,
+    "text": "I think I may have just written this down, but give me a second here.",
+    "s_text": 0.6552,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  },
+  {
+    "start": 233.92,
+    "end": 240.92,
+    "text": "You know how my shortbess is?",
+    "s_text": 0.39,
+    "s_visual": 0.1,
+    "visual_reliability": 0.05,
+    "teaching_stage": "semantic"
+  }
+]

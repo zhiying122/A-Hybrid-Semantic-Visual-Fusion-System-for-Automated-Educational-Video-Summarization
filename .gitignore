@@ -85,3 +85,12 @@ htmlcov/
 
 # Kiro IDE
 .kiro/
+
+# 個人投稿文件與備忘（不公開）
+docs/投稿前待辦_不放進論文.md
+docs/figure_placement.md
+
+# results 裡的過擬合實驗與模擬資料（僅供本地參考，不推上去）
+keytake-ai/results/OVERFIT_*.json
+keytake-ai/results/SIMULATED_DO_NOT_USE_*.json
+keytake-ai/results/SIMULATED_DO_NOT_USE_*.md

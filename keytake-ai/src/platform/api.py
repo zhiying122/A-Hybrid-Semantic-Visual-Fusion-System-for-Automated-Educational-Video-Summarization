@@ -1,16 +1,14 @@
 """
-4.3 系統平台建置：FastAPI 後端
-- 非同步任務佇列（Celery + Redis）處理長影片
-- 提供影片上傳、狀態查詢、摘要下載 API
-- 靜態前端介面服務
+FastAPI 後端
+
+提供教學影片上傳、非同步處理（Celery + Redis）與摘要下載 API。
 
 啟動方式：
-  # 1. 啟動 Redis（需先安裝）
-  #    Windows: 下載 Redis for Windows 或用 WSL
+  # 1. 啟動 Redis（Windows 建議用 WSL 或 Docker）
   # 2. 啟動 Celery worker
-  #    cd keytake-ai && celery -A src.platform.celery_app worker --loglevel=info
-  # 3. 啟動 FastAPI
-  #    cd keytake-ai && uvicorn src.platform.api:app --reload
+  #    celery -A src.platform.celery_app worker --loglevel=info
+  # 3. 啟動 API server
+  #    uvicorn src.platform.api:app --reload
 """
 
 import os
@@ -118,10 +116,7 @@ def download_summary(task_id: str):
 
 @app.get("/materials/{task_id}/{filename}")
 def get_study_material(task_id: str, filename: str):
-    """
-    取得學習素材檔案（v5 新增）
-    支援：study_notes.md, mind_map.json, flashcards.json, chapters.json
-    """
+    """取得學習素材檔案（study_notes.md, mind_map.json, flashcards.json, chapters.json）"""
     allowed = {"study_notes.md", "mind_map.json", "flashcards.json", "chapters.json"}
     if filename not in allowed:
         return JSONResponse(status_code=400, content={"error": f"不支援的檔案：{filename}"})
@@ -192,7 +187,7 @@ def _run_sync(task_id: str, video_path: str):
         else:
             summary_path = None
 
-        # 匯出索引（v4：傳入 course_summary）
+        # 匯出索引（含 course_summary）
         index_path = os.path.join(out_dir, "index.json")
         export_index(
             result["segments"],
@@ -200,12 +195,11 @@ def _run_sync(task_id: str, video_path: str):
             course_summary=result.get("course_summary"),
         )
 
-        # 讀取索引（v4：新格式 {"segments": [...], "course_summary": {...}}）
+        # 讀取索引，相容純陣列格式與含 segments 鍵的物件格式
         index_data = {"segments": [], "course_summary": {}}
         if os.path.exists(index_path):
             with open(index_path, encoding="utf-8") as f:
                 raw_index = json.load(f)
-            # 相容舊格式（純陣列）與新格式（物件含 segments 鍵）
             if isinstance(raw_index, list):
                 index_data = {"segments": raw_index, "course_summary": {}}
             elif isinstance(raw_index, dict):

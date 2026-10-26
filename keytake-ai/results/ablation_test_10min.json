@@ -1,0 +1,45 @@
+{
+  "generated_at": "2026-09-18T15:28:57.359241",
+  "video": "test_10min",
+  "data_type": "REAL (真實影片 + 人工標註)",
+  "annotator_count": 1,
+  "cohens_kappa": null,
+  "eval_range_sec": [
+    0.0,
+    230.08
+  ],
+  "ground_truth_count": 13,
+  "fusion_params": {
+    "alpha": 0.6,
+    "beta": 0.4
+  },
+  "results": {
+    "semantic": {
+      "mode": "semantic",
+      "recall": 0.4615,
+      "precision": 0.4545,
+      "f1_score": 0.458,
+      "false_alarm_rate": 0.1888,
+      "time_saving_rate": 0.3428,
+      "selected_count": 11
+    },
+    "static": {
+      "mode": "static",
+      "recall": 0.6154,
+      "precision": 0.5385,
+      "f1_score": 0.5744,
+      "false_alarm_rate": 0.1467,
+      "time_saving_rate": 0.2062,
+      "selected_count": 13
+    },
+    "adaptive": {
+      "mode": "adaptive",
+      "recall": 0.4615,
+      "precision": 0.4167,
+      "f1_score": 0.438,
+      "false_alarm_rate": 0.1686,
+      "time_saving_rate": 0.3437,
+      "selected_count": 12
+    }
+  }
+}

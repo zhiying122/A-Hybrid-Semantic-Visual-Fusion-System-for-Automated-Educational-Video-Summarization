@@ -1,0 +1,45 @@
+{
+  "generated_at": "2026-09-18T16:56:59.326797",
+  "video": "lecture_03_mental_math",
+  "data_type": "REAL (真實影片 + 人工標註)",
+  "annotator_count": 1,
+  "cohens_kappa": null,
+  "eval_range_sec": [
+    0.0,
+    240.6
+  ],
+  "ground_truth_count": 63,
+  "fusion_params": {
+    "alpha": 0.6,
+    "beta": 0.4
+  },
+  "results": {
+    "semantic": {
+      "mode": "semantic",
+      "recall": 0.4603,
+      "precision": 0.8462,
+      "f1_score": 0.5963,
+      "false_alarm_rate": 0.1007,
+      "time_saving_rate": 0.4188,
+      "selected_count": 13
+    },
+    "static": {
+      "mode": "static",
+      "recall": 0.4603,
+      "precision": 0.7857,
+      "f1_score": 0.5805,
+      "false_alarm_rate": 0.1215,
+      "time_saving_rate": 0.4022,
+      "selected_count": 14
+    },
+    "adaptive": {
+      "mode": "adaptive",
+      "recall": 0.4286,
+      "precision": 0.75,
+      "f1_score": 0.5455,
+      "false_alarm_rate": 0.1254,
+      "time_saving_rate": 0.4012,
+      "selected_count": 12
+    }
+  }
+}

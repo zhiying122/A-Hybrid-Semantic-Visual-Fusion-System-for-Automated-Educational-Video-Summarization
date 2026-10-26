@@ -1,6 +1,6 @@
-"""
-簡易任務狀態暫存（降級用，Celery 未啟動時使用）
-正式環境應改用 Redis 作為後端
-"""
 
-task_store: dict[str, dict] = {}
+"""Celery 降級執行時使用的本機任務狀態暫存。"""
+
+from typing import Any
+
+task_store: dict[str, dict[str, Any]] = {}

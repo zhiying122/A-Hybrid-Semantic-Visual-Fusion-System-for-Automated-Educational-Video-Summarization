@@ -1,27 +1,18 @@
 """
-視覺可靠度估測模組 (Visual Reliability Estimator)
-─────────────────────────────────────────────────────────────────────
-解決評審問題：「若教師手勢過多或不在板書前，視覺權重的可靠度會顯著下降」
+視覺可靠度估測模組
 
-核心想法：
-  在融合階段之前，先對每個視覺觀測計算一個置信度分數 R_visual ∈ [0, 1]，
-  用以「動態折扣」視覺權重 β，而非固定使用 config.py 的靜態 β。
+對每個視覺觀測估計可靠度 R_visual ∈ [0,1]，
+用以動態折扣融合公式中的視覺權重 β：
 
-  實際融合公式（見 adaptive_fusion.py）：
-    β_eff = β * R_visual
-    α_eff = 1 - β_eff   （保持總權重為 1）
-    Score  = α_eff * S_text + β_eff * S_visual
+  β_eff = β × R_visual
+  α_eff = 1 − β_eff
+  Score = α_eff × s_text + β_eff × s_visual
 
-可靠度訊號來源（多維度）：
-  1. 手部位移變異數（低 = 指引穩定 = 高可靠）
-  2. 手部偵測信心度（MediaPipe landmark confidence）
-  3. 畫面中是否偵測到板書區域（文字框密度）
-  4. 手部座標與文字框的空間接近度（IoU 距離）
-  5. 時間平滑（指數移動平均），避免單幀跳動
+R_visual 由四項可觀測訊號加權估計：
+  手部穩定度（0.35）、偵測信心度（0.25）、
+  板書文字密度（0.25）、手板接近度（0.15）
 
-對應計畫書 4.2 步驟三、步驟四，新增理論依據：
-  R_visual 的計算參考 Uncertainty-aware Multimodal Fusion 框架（Wang et al., 2020），
-  以可觀測的信號作為不確定性的代理指標。
+加上指數移動平均（EMA）平滑，避免單幀跳動干擾穩定性。
 """
 
 from __future__ import annotations
@@ -57,12 +48,10 @@ class ReliabilityResult:
 
 class VisualReliabilityEstimator:
     """
-    視覺可靠度估測器（自適應置信度加權）
+    視覺可靠度估測器
 
-    特性：
-    - 多維度信號融合，非單一指標
-    - 指數移動平均（EMA）平滑，避免單幀雜訊
-    - 可插拔設計：不影響既有 pipeline，作為 adaptive_fusion 的前置模組
+    多維度訊號融合，以 EMA 平滑，輸出 R_visual ∈ [0,1]。
+    可直接插入現有 pipeline，不影響其他模組。
     """
 
     # 各訊號的組合權重（加總為 1）
@@ -140,12 +129,7 @@ class VisualReliabilityEstimator:
 
     @staticmethod
     def _hand_stability_score(variance: float) -> float:
-        """
-        手部位移變異數 → 穩定性分數
-        variance = 0   → score = 1.0（完全靜止）
-        variance = 2×threshold → score ≈ 0.0（高度移動）
-        使用 sigmoid-like 映射確保平滑過渡
-        """
+        """手部位移變異數轉穩定性分數（指數衰減映射）。"""
         if variance <= 0:
             return 1.0
         threshold = HAND_VARIANCE_THRESHOLD
@@ -158,9 +142,7 @@ class VisualReliabilityEstimator:
         text_boxes: list[tuple[int, int, int, int]],
         frame_area: int,
     ) -> float:
-        """
-        板書文字框密度 → 文字區域佔畫面比例（對數壓縮）
-        """
+        """板書文字框面積佔畫面比例（對數壓縮）。"""
         if frame_area <= 0 or not text_boxes:
             return 0.0
         total_text_area = sum(
@@ -179,10 +161,7 @@ class VisualReliabilityEstimator:
         frame_w: int,
         frame_h: int,
     ) -> float:
-        """
-        手部中心點與最近文字框的距離 → 接近度分數
-        距離越近（手在板書上方）→ 分數越高
-        """
+        """食指中心點與最近文字框的距離轉接近度分數（指數衰減）。"""
         if hand_center is None or not text_boxes:
             return 0.0
 
@@ -210,10 +189,7 @@ class VisualReliabilityEstimator:
     def _compute_raw_reliability(
         self, signals: ReliabilitySignals
     ) -> tuple[float, str]:
-        """
-        將各子分數依 SIGNAL_WEIGHTS 加權合併，
-        回傳（原始可靠度, 主要影響因素名稱）
-        """
+        """將各子分數依 SIGNAL_WEIGHTS 加權合併，回傳（原始可靠度, 主要影響因素）。"""
         if not signals.hand_detected:
             return 0.0, "no_hand_detected"
 

@@ -1,6 +1,6 @@
 """
 Ground Truth 標註工具（CLI 介面）
-對應計畫書 4.4 黃金標準建立：雙盲專家評級
+
 - 逐段顯示 Whisper 轉錄文字與時間戳記
 - 標註者以 Likert 1~5 分評分
 - 兩位標註者都給 4 分以上才列入 Ground Truth
@@ -71,6 +71,54 @@ def _save(results: list, path: str, annotator_id: str):
             "timestamp": datetime.now().isoformat(),
             "segments": results
         }, f, ensure_ascii=False, indent=2)
+
+
+def finalize(annotation_path: str, output_path: str, threshold: int = 4):
+    """
+    單人標註 → 直接產生 Ground Truth（single-annotator pilot）。
+
+    與 merge 不同：不需要第二位標註者，僅取單一標註者評分 >= threshold 的片段
+    作為 GT。輸出會明確標示 annotator_count=1、cohens_kappa=null，
+    供論文誠實引用為「single-annotator pilot」。
+    """
+    with open(annotation_path, encoding="utf-8") as f:
+        data = json.load(f)
+
+    segs = data.get("segments", [])
+    if not segs:
+        print("警告：標註檔內沒有任何片段，請先完成標註。")
+        return
+
+    important = [s for s in segs if s.get("score", 0) >= threshold]
+    ground_truth = [{"start_sec": s["start"], "end_sec": s["end"]} for s in important]
+    ground_truth.sort(key=lambda x: x["start_sec"])
+
+    eval_range = [0.0, round(max(s["end"] for s in segs), 2)] if segs else [0.0, 0.0]
+
+    result = {
+        "annotator_count": 1,
+        "cohens_kappa": None,
+        "note": "single-annotator pilot（單人標註可行性驗證）。"
+                "Cohen's Kappa 需兩位標註者，此版本尚未進行。"
+                f"重點門檻：Likert >= {threshold}。",
+        "threshold": threshold,
+        "total_annotated": len(segs),
+        "important_segments_raw": len(important),
+        "ground_truth_count": len(ground_truth),
+        "eval_range_sec": eval_range,
+        "ground_truth": ground_truth,
+    }
+
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(result, f, ensure_ascii=False, indent=2)
+
+    print(f"\n[finalize] 單人標註 → Ground Truth")
+    print(f"  已標註片段：{len(segs)}")
+    print(f"  重點片段（>= {threshold} 分）：{len(ground_truth)}")
+    print(f"  評估範圍：0 ~ {eval_range[1]}s")
+    print(f"  GT 已存至：{output_path}")
+    print(f"  ⚠️ 論文中請標示為 single-annotator pilot。")
 
 
 def merge(path_a: str, path_b: str, output_path: str = "ground_truth.json"):
@@ -151,6 +199,12 @@ if __name__ == "__main__":
     mrg.add_argument("file_b", help="標註者 B 的 JSON 檔")
     mrg.add_argument("--output", default="ground_truth.json")
 
+    # 單人定案模式
+    fin = sub.add_parser("finalize", help="單人標註直接產生 GT（single-annotator pilot）")
+    fin.add_argument("annotation", help="單一標註者的 JSON 檔")
+    fin.add_argument("--output", required=True, help="輸出 GT 路徑，如 data/annotations/gt_<vid>.json")
+    fin.add_argument("--threshold", type=int, default=4, help="列入 GT 的最低分數（預設 4）")
+
     args = parser.parse_args()
 
     if args.cmd == "annotate":
@@ -158,5 +212,7 @@ if __name__ == "__main__":
         annotate(args.transcript, args.annotator, out)
     elif args.cmd == "merge":
         merge(args.file_a, args.file_b, args.output)
+    elif args.cmd == "finalize":
+        finalize(args.annotation, args.output, args.threshold)
     else:
         parser.print_help()
