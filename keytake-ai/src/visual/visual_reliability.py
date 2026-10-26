@@ -85,15 +85,10 @@ class VisualReliabilityEstimator:
         signals: ReliabilitySignals,
         base_beta: float = 0.5,
     ) -> ReliabilityResult:
-        """
-        根據訊號計算本幀可靠度，並動態調整視覺權重 β_eff。
+        """計算本幀可靠度，並動態調整視覺權重 β_eff。
 
-        Args:
-            signals:    由 hand_tracker / visual_scorer 收集的訊號
-            base_beta:  config.py 的靜態 β（Grid Search 最佳化結果）
-
-        Returns:
-            ReliabilityResult，含最終 β_eff 與解釋
+        base_beta 來自 config.py 的靜態 Grid Search 最佳化結果；
+        β_eff = base_beta × R_visual，可靠度低時自動縮小視覺權重。
         """
         raw_reliability, dominant = self._compute_raw_reliability(signals)
 
@@ -224,37 +219,31 @@ def build_signals_from_tracker_result(
     frame_w: int = 640,
     frame_h: int = 480,
 ) -> ReliabilitySignals:
-    """
-    從 HandTracker.process_frame() 回傳的 dict 和文字框列表
-    建構 ReliabilitySignals，供 VisualReliabilityEstimator 使用。
+    """從 HandTracker.process_frame() 回傳值和文字框列表建構 ReliabilitySignals。
 
-    Args:
-        tracker_result: HandTracker.process_frame() 的回傳值
-        text_boxes:     TextDetector 偵測到的文字框列表
-        frame_w/h:      畫面尺寸（計算接近度距離用）
+    hand_confidence 以 intent_score 作為代理值：intent_score 越高代表手勢越明確，
+    MediaPipe 偵測品質也通常越好，但兩者不完全等價。
     """
     text_boxes = text_boxes or []
     triggered = tracker_result.get("triggered", False)
     roi_center = tracker_result.get("roi_center")
+    s_raw = tracker_result.get("s_visual_raw", 0.0)
 
-    # 計算文字密度
-    estimator = VisualReliabilityEstimator()
-    text_density = estimator._text_density_score(text_boxes, frame_w * frame_h)
-
-    # 計算接近度
-    proximity = estimator._proximity_score(
+    # 直接呼叫靜態方法，不需建立完整的 VisualReliabilityEstimator 物件
+    text_density = VisualReliabilityEstimator._text_density_score(
+        text_boxes, frame_w * frame_h
+    )
+    proximity = VisualReliabilityEstimator._proximity_score(
         roi_center, text_boxes, frame_w, frame_h
     )
 
-    # 從 s_visual_raw 反推 variance（近似）
-    s_raw = tracker_result.get("s_visual_raw", 0.0)
-    # s_visual_raw = max(0, 1 - variance / (2 * threshold))
-    # → variance ≈ (1 - s_raw) * 2 * threshold
+    # 以 intent_score 反推近似 variance（用於手部穩定度計算）
+    # s_visual_raw ≈ 1 - variance / (2 * threshold)  →  variance ≈ (1 - s_raw) * 2 * threshold
     approx_variance = (1.0 - min(s_raw, 1.0)) * 2.0 * HAND_VARIANCE_THRESHOLD
 
     return ReliabilitySignals(
         hand_variance=approx_variance,
-        hand_confidence=s_raw,        # 用 s_visual_raw 作為信心度代理
+        hand_confidence=s_raw,
         text_density=text_density,
         hand_board_proximity=proximity,
         hand_detected=triggered or (s_raw > 0),

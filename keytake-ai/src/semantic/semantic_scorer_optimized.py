@@ -3,7 +3,6 @@
 import json
 import os
 import re
-import time
 from typing import Optional
 
 import numpy as np
@@ -18,8 +17,8 @@ except ImportError:
     util = None
     SENTENCE_TRANSFORMERS_AVAILABLE = False
 
-from config import SBERT_MODEL, TFIDF_TOP_K, SBERT_SIMILARITY_THRESHOLD
-from src.semantic.llm_cache import LLMCache
+from config import SBERT_MODEL, TFIDF_TOP_K
+from src.semantic.llm_cache_optimized import LLMCache
 
 
 TEACHING_STAGE_TYPES = {
@@ -216,11 +215,12 @@ class SemanticScorer:
             tfidf = self.tfidf_scores(segments)
             semantic = self.sbert_scores(segments)
             scores = alpha * tfidf + (1.0 - alpha) * semantic
-            stages = ["semantic"] * len(segments)
+            # SBERT/tfidf 模式無法判斷教學階段，統一標記為 "transition"（中性值）
+            stages = ["transition"] * len(segments)
             summaries = [text[:20] for text in texts]
         else:
             scores = self.tfidf_scores(segments)
-            stages = ["semantic"] * len(segments)
+            stages = ["transition"] * len(segments)
             summaries = [text[:20] for text in texts]
 
         for i, segment in enumerate(segments):
@@ -362,7 +362,10 @@ class SemanticScorer:
             result["stage"] = "transition"
         summary = result.get("summary", text[:20])
         result["summary"] = str(summary).strip()[:100] or text[:20]
-        self._cache.put(text, result)
+
+        # 只有同時包含 score + stage + summary 的完整結果才快取
+        if "stage" in result and "summary" in result:
+            self._cache.put(text, result)
         return result
 
     def _call_llm_raw(self, prompt: str, max_tokens: int = 80) -> str:

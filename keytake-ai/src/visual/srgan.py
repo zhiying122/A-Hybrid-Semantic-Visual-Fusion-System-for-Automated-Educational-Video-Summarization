@@ -1,9 +1,7 @@
-"""
-影像超解析度增強模組
+"""影像超解析度增強模組
 
-偵測 ROI 是否模糊（Laplacian 變異數），
-模糊時以 Real-ESRGAN 進行超解析度增強；
-Real-ESRGAN 不可用時退化為 OpenCV bicubic 插值。
+偵測 ROI 是否模糊（Laplacian 變異數），模糊時以 bicubic 插值放大。
+若未來需要 Real-ESRGAN，可在此替換 enhance_roi 實作。
 """
 
 import cv2
@@ -11,74 +9,31 @@ import numpy as np
 from config import SRGAN_SCALE
 
 
-def _try_load_realesrgan():
-    """嘗試載入 Real-ESRGAN，失敗則回傳 None（降級用）"""
-    try:
-        from basicsr.archs.rrdbnet_arch import RRDBNet
-        from realesrgan import RealESRGANer
-        import torch
-
-        model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64,
-                        num_block=6, num_grow_ch=32, scale=4)
-        upsampler = RealESRGANer(
-            scale=4,
-            model_path="weights/RealESRGAN_x4plus.pth",
-            model=model,
-            tile=128,          # 分塊處理，降低 VRAM 需求
-            tile_pad=10,
-            pre_pad=0,
-            half=torch.cuda.is_available()
-        )
-        return upsampler
-    except Exception:
-        return None
-
-
-# 模組載入時嘗試初始化（失敗不影響主流程）
-_upsampler = None
-
-
 def enhance_roi(roi: np.ndarray, scale: int = SRGAN_SCALE) -> np.ndarray:
-    """
-    對 ROI 進行超解析度增強
-    - 優先使用 Real-ESRGAN（需安裝 realesrgan 套件與權重檔）
-    - 降級備援：OpenCV bicubic 插值（無需額外套件）
-
-    Args:
-        roi: BGR 格式的 ROI 影像 (H, W, 3)
-        scale: 放大倍數，預設 4x
-
-    Returns:
-        增強後的影像
-    """
-    global _upsampler
-
+    """以 bicubic 插值對 ROI 進行超解析度增強。"""
     if roi is None or roi.size == 0:
         return roi
-
-    # 直接使用 bicubic 降級備援（Real-ESRGAN 為延伸功能，需手動啟用）
     h, w = roi.shape[:2]
-    # 確保 dtype 相容
     if roi.dtype != np.uint8:
         roi = np.clip(roi, 0, 255).astype(np.uint8)
     return cv2.resize(roi, (w * scale, h * scale), interpolation=cv2.INTER_CUBIC)
 
 
 def is_blurry(image: np.ndarray, threshold: float = 100.0) -> bool:
-    """
-    使用 Laplacian 變異數判斷影像是否模糊
-    threshold 越低代表越模糊，低於閾值才觸發 SRGAN
-    """
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    """以 Laplacian 變異數判斷影像是否模糊（低於閾值即視為模糊）。"""
+    if image is None or image.size == 0:
+        return False
+    # 支援灰階（ndim=2）與彩色（ndim=3）輸入
+    if image.ndim == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = image
     variance = cv2.Laplacian(gray, cv2.CV_64F).var()
     return bool(variance < threshold)
 
 
 def enhance_if_blurry(roi: np.ndarray, threshold: float = 100.0) -> tuple[np.ndarray, bool]:
-    """
-    只在偵測到模糊時才觸發增強（節省運算資源）
-    回傳 (增強後影像, 是否有觸發增強)
-    """
+    """只在偵測到模糊時才觸發增強，回傳 (增強後影像, 是否觸發)。"""
     if is_blurry(roi, threshold):
         return enhance_roi(roi), True
     return roi, False

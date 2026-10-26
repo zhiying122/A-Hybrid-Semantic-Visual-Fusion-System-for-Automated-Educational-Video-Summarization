@@ -78,19 +78,22 @@ def compute_time_saving_rate(selected: list[dict], total_duration: float) -> flo
     return 1.0 - (summary_duration / total_duration)
 
 
-def compute_bert_score(summary_texts: list[str], reference_texts: list[str]) -> float:
+def compute_bert_score(summary_texts: list[str], reference_texts: list[str]) -> float | None:
+    """計算 BERTScore F1 均值；bert-score 未安裝時回傳 None 而非拋出例外。"""
     if bert_score_fn is None:
-        raise ImportError("bert-score 未安裝，請執行：pip install bert-score")
-    
+        import warnings
+        warnings.warn("bert-score 未安裝，BERTScore 評估已跳過。請執行：pip install bert-score")
+        return None
+
     _, _, f1 = bert_score_fn(summary_texts, reference_texts, lang="zh", verbose=False)
     return float(f1.mean())
 
 
 def evaluate_all(
-    selected: list[dict], 
-    ground_truth: list[tuple[float, float]], 
-    total_duration: float, 
-    summary_texts: list[str], 
+    selected: list[dict],
+    ground_truth: list[tuple[float, float]],
+    total_duration: float,
+    summary_texts: list[str],
     reference_texts: list[str]
 ) -> dict:
     results = {
@@ -107,7 +110,9 @@ def evaluate_all(
     print(f"精確度 (Precision)       : {results['precision']:.3f}")
     print(f"F1-Score                 : {results['f1_score']:.3f}")
     print(f"誤報率 (FAR)             : {results['false_alarm_rate']:.3f}  (目標 < 0.25)")
-    print(f"語意相似度 (BERTScore)   : {results['bert_score']:.3f}  (目標 > {TARGET_BERT_SCORE})")
+    bert = results["bert_score"]
+    bert_display = f"{bert:.3f}" if bert is not None else "N/A（bert-score 未安裝）"
+    print(f"語意相似度 (BERTScore)   : {bert_display}  (目標 > {TARGET_BERT_SCORE})")
     print(f"時間節省率 (TSR)         : {results['time_saving_rate']:.3f}  (目標 > {TARGET_TIME_SAVING_RATE})")
-    
+
     return results

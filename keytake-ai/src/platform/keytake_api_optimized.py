@@ -229,7 +229,7 @@ def get_study_material(task_id: str, filename: str):
 def _run_sync(task_id: str, video_path: str) -> None:
     """Run the processing pipeline in a development-only background thread."""
     task_store = _get_task_store()
-    from src.output.video_exporter import export_index, export_summary_video
+    from src.output.video_exporter_optimized import export_index, export_summary_video
 
     steps = [
         ("影音前處理", 0.10),

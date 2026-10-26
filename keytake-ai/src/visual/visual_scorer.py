@@ -5,12 +5,13 @@
 ASR 關鍵字的語意相似度，得到視覺分數 s_visual。
 
 流程：
-  1. 模糊偵測 → 觸發 SRGAN/bicubic 增強
+  1. 模糊偵測 → 觸發 bicubic 增強
   2. 文字偵測 → 判斷是否執行 OCR
   3. OCR → SBERT 語意相似度計算
   4. OCR 失敗 → 退化為手部座標與文字框 IoU
 
-同時支援螢光筆顏色偵測作為輔助特徵。
+螢光筆顏色偵測（黃色 HSV 範圍）作為輔助特徵；
+若課程使用其他顏色筆，此特徵效果有限。
 """
 
 from dataclasses import dataclass
@@ -90,7 +91,7 @@ def compute_visual_score(
     asr_keywords: list[str],
     frame: np.ndarray
 ) -> float:
-    """計算最終視覺分數 S_visual（舊版）"""
+    """舊版視覺分數計算函式，保留以維持向下相容性。建議改用 compute_visual_score_v2。"""
     ocr_text = ocr_roi(roi)
     if ocr_text:
         matched = sum(1 for kw in asr_keywords if kw in ocr_text)

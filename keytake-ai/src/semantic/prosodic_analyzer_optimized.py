@@ -64,7 +64,7 @@ class ProsodicAnalyzer:
     def analyze_segments(
         self, audio_path: str, segments: list[dict]
     ) -> list[dict]:
-        """分析片段並原地加入 s_prosodic 欄位。"""
+        """分析片段並原地加入 s_prosodic 欄位。失敗時以 0.5 填充，不中斷主流程。"""
         if not segments:
             return segments
 
@@ -140,7 +140,7 @@ class ProsodicAnalyzer:
     def _estimate_speech_rate(
         segment_y: np.ndarray, sr: int, duration: float
     ) -> float:
-        """以每秒 onset 數作為發音活動密度的近似值，不等同真正音節語速。"""
+        """以每秒 onset 數估計發音活動密度（近似值，非真正音節語速）。"""
         if duration <= 0 or segment_y.size == 0:
             return 0.0
         try:
@@ -157,7 +157,7 @@ class ProsodicAnalyzer:
 
     @staticmethod
     def _compute_volume(segment_y: np.ndarray) -> float:
-        """回傳 RMS 音量；後續會在同一批片段內正規化。"""
+        """回傳平均 RMS 音量；後續在同批片段內正規化。"""
         if segment_y.size == 0:
             return 0.0
         rms = librosa.feature.rms(y=segment_y)[0]
@@ -214,7 +214,7 @@ class ProsodicAnalyzer:
     def _normalize_features(
         self, features_list: list[dict[str, float]]
     ) -> list[dict[str, float]]:
-        """以同批片段的分位數縮放，降低極端值對結果的影響。"""
+        """以同批片段的 10/90 分位數縮放，降低極端值影響。"""
         if not features_list:
             return []
 
@@ -234,7 +234,7 @@ class ProsodicAnalyzer:
             else:
                 normalized[key] = np.clip((values - low) / (high - low), 0, 1)
 
-        # 高分代表語速較慢；停頓越少分數越高。
+        # 高分代表語速較慢（反轉 speech_rate），停頓越少分數越高（反轉 pause_ratio）
         results = []
         for i in range(len(features_list)):
             results.append(
@@ -246,7 +246,7 @@ class ProsodicAnalyzer:
         return results
 
     def _compute_importance(self, features: dict[str, float]) -> float:
-        """依設定權重加總四項正規化特徵。"""
+        """依設定權重加總四項正規化特徵，回傳 [0, 1] 的韻律重要性分數。"""
         components = np.array(
             [
                 1.0 - features["speech_rate"],

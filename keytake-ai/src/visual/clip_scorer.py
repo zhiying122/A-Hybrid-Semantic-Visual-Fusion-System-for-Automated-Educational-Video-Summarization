@@ -27,11 +27,16 @@ logger = logging.getLogger(__name__)
 
 
 class CLIPScorer:
+    """CLIP 視覺-文字語意相似度評分器（Singleton）。
+
+    全域只保留一個實例，避免重複載入大型模型。
+    第二次呼叫 CLIPScorer(model_name) 時 model_name 參數會被忽略。
+    """
+
     _instance: Optional["CLIPScorer"] = None
     _initialized: bool = False
 
     def __new__(cls, *args, **kwargs):
-        """覆寫 __new__ 確保即使用 CLIPScorer() 呼叫，也嚴格遵守單例模式"""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
@@ -70,20 +75,23 @@ class CLIPScorer:
             self.available = False
 
     def compute_clip_score(self, roi: np.ndarray, text: str) -> float:
-        """計算 ROI 影像與文字的正規化 CLIP 分數 [0, 1]"""
+        """計算 ROI 影像與文字的 CLIP 語意相似度 [0, 1]。
+
+        CLIP 的圖文嵌入已 L2 正規化，cosine_sim 實務上分布在 [0.1, 0.4] 附近，
+        直接 clip 至 [0, 1] 比 (x+1)/2 映射更符合實際量尺。
+        """
         if not self.available or roi is None or roi.size == 0 or not text.strip():
             return 0.0
 
         try:
             pil_image = Image.fromarray(roi[:, :, ::-1])
-            
+
             inputs = self.processor(
                 text=[text.strip()],
                 images=pil_image,
                 return_tensors="pt",
-                padding=True
+                padding=True,
             )
-            # 確保輸入張量與模型在同一個 Device (CPU/GPU)
             inputs = {k: v.to(self.device) for k, v in inputs.items()}
 
             with torch.no_grad():
@@ -93,7 +101,7 @@ class CLIPScorer:
                 outputs.image_embeds, outputs.text_embeds
             ).item()
 
-            return max(0.0, min((cosine_sim + 1.0) / 2.0, 1.0))
+            return float(max(0.0, min(cosine_sim, 1.0)))
 
         except Exception as e:
             logger.warning(f"[CLIPScorer] 計算失敗: {e}")
@@ -102,11 +110,13 @@ class CLIPScorer:
     def compute_clip_score_with_keywords(self, roi: np.ndarray, asr_keywords: list[str]) -> float:
         if not asr_keywords:
             return 0.0
-            
-        combined_text = " ".join(kw.strip() for kw in asr_keywords if kw.strip())
+
+        # CLIP text encoder 限制 77 tokens；關鍵字過多時截取前 20 個以避免截斷
+        keywords = [kw.strip() for kw in asr_keywords if kw.strip()]
+        combined_text = " ".join(keywords[:20])
         if not combined_text:
             return 0.0
-            
+
         return self.compute_clip_score(roi, combined_text)
 
     @property

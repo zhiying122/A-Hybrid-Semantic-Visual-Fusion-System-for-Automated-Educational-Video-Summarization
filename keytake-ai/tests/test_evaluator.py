@@ -226,6 +226,9 @@ class TestEvaluateAllProperties:
         expected_keys = {'recall', 'precision', 'f1_score', 'false_alarm_rate', 'bert_score', 'time_saving_rate'}
         assert expected_keys == set(result.keys()), \
             f"Expected keys {expected_keys}, got {set(result.keys())}"
+        # bert_score 在 bert-score 未安裝時為 None，安裝時為 float
+        if result['bert_score'] is not None:
+            assert 0.0 <= result['bert_score'] <= 1.0
 
 
 # ============================================================================

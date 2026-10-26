@@ -1,7 +1,6 @@
-"""
-片段特徵抽取模組
+"""片段特徵抽取模組
 
-獨立執行語意與視覺特徵抽取，並輸出特徵結果，
+獨立執行語意與視覺特徵抽取並輸出結果，
 供消融實驗與重複評估使用，避免頻繁觸發耗時的模型推論。
 """
 
@@ -10,9 +9,9 @@ import cv2
 from contextlib import closing
 from typing import List, Dict, Any
 
-from src.preprocessing.preprocessor import preprocess
-from src.semantic.transcriber import transcribe
-from src.semantic.scorer import SemanticScorer
+from src.preprocessing.preprocessor_optimized import preprocess
+from src.semantic.transcriber_optimized import transcribe
+from src.semantic.semantic_scorer_optimized import SemanticScorer
 from src.visual.hand_tracker import HandTracker
 from src.visual.visual_scorer import compute_visual_score_v2, SRGANEnhancer
 from src.visual.text_detector import TextDetector

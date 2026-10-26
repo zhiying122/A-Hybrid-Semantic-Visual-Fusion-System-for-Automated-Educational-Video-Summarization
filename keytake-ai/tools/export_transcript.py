@@ -19,9 +19,9 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from src.preprocessing.preprocessor import preprocess
-from src.semantic.transcriber import transcribe
-from src.semantic.scorer import SemanticScorer
+from src.preprocessing.preprocessor_optimized import preprocess
+from src.semantic.transcriber_optimized import transcribe
+from src.semantic.semantic_scorer_optimized import SemanticScorer
 from data.prompt_corpus.corpus import PROMPT_CORPUS
 
 

@@ -24,7 +24,6 @@ celery_app = Celery(
     "keytake",
     broker=REDIS_URL,
     backend=REDIS_URL,
-    include=["src.platform.celery_app"],
 )
 
 celery_app.conf.update(
@@ -53,7 +52,7 @@ def _is_inside(path: Path, directory: Path) -> bool:
 def process_video_task(self, task_id: str, video_path: str) -> dict[str, Any]:
     """執行影片摘要流程並回傳摘要索引與統計資料。"""
     from main import run_pipeline
-    from src.output.video_exporter import export_index, export_summary_video
+    from src.output.video_exporter_optimized import export_index, export_summary_video
 
     source_path = Path(video_path).resolve()
     output_dir = OUTPUT_DIR / task_id

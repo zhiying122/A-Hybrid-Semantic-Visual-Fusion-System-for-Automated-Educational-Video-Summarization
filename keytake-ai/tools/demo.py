@@ -28,8 +28,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.fusion.adaptive_fusion import fuse_scores, semantic_sliding_window
 from src.fusion.evaluator import compute_recall, compute_false_alarm_rate, compute_time_saving_rate
-from src.output.video_exporter import export_index
-from src.output.study_materials import StudyMaterialsGenerator
+from src.output.video_exporter_optimized import export_index
+from src.output.study_materials_generator_optimized import StudyMaterialsGenerator
 from config import ALPHA, BETA, FUSION_SCORE_THRESHOLD
 
 

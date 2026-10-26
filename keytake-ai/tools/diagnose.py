@@ -110,7 +110,7 @@ check("config.py", chk_config)
 
 # 12. Pipeline 模組串接
 def chk_pipeline():
-    from src.semantic.scorer import SemanticScorer
+    from src.semantic.semantic_scorer_optimized import SemanticScorer
     from src.fusion.adaptive_fusion import fuse_scores
     from src.fusion.evaluator import compute_recall
     return "所有核心模組可 import"

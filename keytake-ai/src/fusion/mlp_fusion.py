@@ -16,10 +16,8 @@ try:
     import torch.nn as nn
     from torch.utils.data import DataLoader, TensorDataset
     TORCH_AVAILABLE = True
-    _nn_Module = nn.Module
 except ImportError:
     TORCH_AVAILABLE = False
-    _nn_Module = object 
 
 try:
     from config import MLP_FUSION_MODEL_PATH, MLP_FUSION_EPOCHS, MLP_FUSION_LR
@@ -30,30 +28,36 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# 使用 Dictionary 加速 One-hot encoding 的查詢 (O(1) vs O(N))
 TEACHING_STAGES = ["definition", "derivation", "example", "summary", "transition", "qa"]
 _STAGE_TO_IDX = {stage: i for i, stage in enumerate(TEACHING_STAGES)}
 
 
-class MLPFusionModel(_nn_Module):
-    def __init__(self):
-        super().__init__()
-        self.network = nn.Sequential(
-            nn.Linear(10, 32),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(32, 16),
-            nn.ReLU(),
-            nn.Linear(16, 1),
-            nn.Sigmoid(),
-        )
+if TORCH_AVAILABLE:
+    class MLPFusionModel(nn.Module):
+        def __init__(self):
+            super().__init__()
+            # 輸入：s_text, s_visual, visual_reliability, gesture_intent_score,
+            #       s_prosodic, one-hot teaching_stage (6 維) = 11 維
+            self.network = nn.Sequential(
+                nn.Linear(11, 32),
+                nn.ReLU(),
+                nn.Dropout(0.3),
+                nn.Linear(32, 16),
+                nn.ReLU(),
+                nn.Linear(16, 1),
+                nn.Sigmoid(),
+            )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.network(x)
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            return self.network(x)
+else:
+    MLPFusionModel = None  # type: ignore[assignment]
 
 
 class MLPFusionTrainer:
     def __init__(self, model_path: str = MLP_FUSION_MODEL_PATH):
+        if not TORCH_AVAILABLE:
+            raise ImportError("PyTorch 未安裝，無法使用 MLPFusionTrainer")
         self.model_path = model_path
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = MLPFusionModel().to(self.device)
@@ -64,7 +68,12 @@ class MLPFusionTrainer:
         ground_truth: List[Tuple[float, float]],
         epochs: int = MLP_FUSION_EPOCHS,
         lr: float = MLP_FUSION_LR,
+        seed: int = 42,
     ) -> dict:
+        # 固定 seed 確保 train/val split 可重現
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+
         features = np.array([self._build_features(seg) for seg in segments], dtype=np.float32)
         labels = np.array([self._compute_label(seg, ground_truth) for seg in segments], dtype=np.float32)
 
@@ -89,7 +98,7 @@ class MLPFusionTrainer:
         for epoch in range(epochs):
             self.model.train()
             epoch_loss = 0.0
-            
+
             for X_batch, y_batch in train_loader:
                 optimizer.zero_grad()
                 loss = criterion(self.model(X_batch), y_batch)
@@ -100,11 +109,13 @@ class MLPFusionTrainer:
             epoch_loss /= n_train
             train_losses.append(epoch_loss)
 
-            val_loss = epoch_loss
             if X_val is not None:
                 self.model.eval()
                 with torch.no_grad():
                     val_loss = criterion(self.model(X_val), y_val).item()
+            else:
+                # 無驗證集時以訓練損失代替，early stopping 退化為最後 epoch
+                val_loss = epoch_loss
             val_losses.append(val_loss)
 
             if val_loss < best_val_loss:
@@ -140,18 +151,18 @@ class MLPFusionTrainer:
         return scores.tolist()
 
     def _build_features(self, seg: Dict) -> np.ndarray:
-        """建構 10 維特徵向量"""
-        # 直接配置好 10 維的連續記憶體，比 np.concatenate 效率更高
-        feature = np.zeros(10, dtype=np.float32)
+        """建構 11 維特徵向量：s_text, s_visual, visual_reliability, gesture_intent_score,
+        s_prosodic, one-hot teaching_stage (6 維)。"""
+        feature = np.zeros(11, dtype=np.float32)
         feature[0] = float(seg.get("s_text", 0.0))
         feature[1] = float(seg.get("s_visual", 0.0))
         feature[2] = float(seg.get("visual_reliability", 1.0))
         feature[3] = float(seg.get("gesture_intent_score", 0.0))
+        feature[4] = float(seg.get("s_prosodic", 0.5))
 
         stage = seg.get("teaching_stage", "")
         if stage in _STAGE_TO_IDX:
-            # Index 4~9 對應 One-hot encoding
-            feature[4 + _STAGE_TO_IDX[stage]] = 1.0
+            feature[5 + _STAGE_TO_IDX[stage]] = 1.0
 
         return feature
 

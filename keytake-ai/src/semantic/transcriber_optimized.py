@@ -4,8 +4,14 @@ import os
 from pathlib import Path
 from typing import Any
 
-import whisper
 from config import WHISPER_MODEL
+
+try:
+    import whisper as _whisper
+    WHISPER_LOCAL_AVAILABLE = True
+except ImportError:
+    _whisper = None
+    WHISPER_LOCAL_AVAILABLE = False
 
 
 _LOCAL_MODELS: dict[str, Any] = {}
@@ -76,15 +82,17 @@ def transcribe(audio_path: str) -> list[dict]:
 
 
 def _get_local_model():
-    """同一個程序內重用已載入的 Whisper 模型。"""
+    """同一個程序內重用已載入的 Whisper 模型，避免重複分配記憶體。"""
+    if not WHISPER_LOCAL_AVAILABLE:
+        raise ImportError("openai-whisper 未安裝，請執行：pip install openai-whisper")
     model_name = str(WHISPER_MODEL)
     if model_name not in _LOCAL_MODELS:
-        _LOCAL_MODELS[model_name] = whisper.load_model(model_name)
+        _LOCAL_MODELS[model_name] = _whisper.load_model(model_name)
     return _LOCAL_MODELS[model_name]
 
 
 def _transcribe_local(audio_path: str) -> list[dict]:
-    """使用本地 Whisper 模型轉錄。"""
+    """使用本地 Whisper 模型轉錄。若 whisper 未安裝則拋 ImportError。"""
     model = _get_local_model()
     result = model.transcribe(audio_path, word_timestamps=False)
 
@@ -113,7 +121,6 @@ def _transcribe_remote(audio_path: str) -> list[dict]:
     except ImportError:
         print("[Transcriber] 未安裝 openai 套件，改用本地模式")
         return _transcribe_local(audio_path)
-
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         print("[Transcriber] 未設定 OPENAI_API_KEY，改用本地模式")

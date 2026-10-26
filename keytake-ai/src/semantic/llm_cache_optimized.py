@@ -11,7 +11,11 @@ from typing import Any
 
 
 class LLMCache:
-    """以輸入文本的 SHA-256 雜湊值快取 LLM 評分結果。"""
+    """以輸入文本的 SHA-256 雜湊值快取 LLM 評分結果。
+
+    採用延遲載入（首次 get/put 才讀磁碟）與批次寫入（累積 flush_every 筆再刷盤），
+    以減少重複 I/O。寫盤使用原子替換（write-to-temp + os.replace）確保完整性。
+    """
 
     def __init__(
         self,
@@ -74,7 +78,6 @@ class LLMCache:
     def _is_expired(self, entry: dict[str, Any]) -> bool:
         if self._max_age_days is None:
             return False
-
         try:
             timestamp = datetime.fromisoformat(entry["timestamp"])
             if timestamp.tzinfo is None:
@@ -85,8 +88,9 @@ class LLMCache:
             return True
 
     def _flush_to_disk(self) -> bool:
-        """原子更新快取檔；成功回傳 True，失敗保留待寫入狀態。"""
+        """原子更新快取檔（write-to-temp + os.replace）；成功回傳 True。"""
         self._cache_dir.mkdir(parents=True, exist_ok=True)
+        # 帶 PID+TID 的 temp 名稱避免多 worker 衝突
         temp_path = self._cache_file.with_name(
             f".{self._cache_file.name}.{os.getpid()}.{threading.get_ident()}.tmp"
         )
@@ -161,14 +165,10 @@ class LLMCache:
             try:
                 self._cache_file.unlink(missing_ok=True)
             except OSError as exc:
-                warnings.warn(
-                    f"刪除快取檔失敗：{exc}",
-                    RuntimeWarning,
-                    stacklevel=2,
-                )
+                warnings.warn(f"刪除快取檔失敗：{exc}", RuntimeWarning, stacklevel=2)
 
     def flush(self) -> bool:
-        """強制寫入磁碟；回傳是否成功。"""
+        """強制將待寫入資料刷入磁碟；回傳是否成功。"""
         with self._lock:
             self._ensure_loaded()
             if self._flush_to_disk():

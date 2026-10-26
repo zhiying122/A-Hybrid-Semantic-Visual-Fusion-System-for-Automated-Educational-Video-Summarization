@@ -189,7 +189,7 @@ def export_index(
     course_summary: dict | None = None,
 ) -> str:
     """Export timeline metadata as UTF-8 JSON."""
-    from src.semantic.scorer import STAGE_TO_SEG_TYPE, STAGE_LABELS
+    from src.semantic.semantic_scorer_optimized import STAGE_TO_SEG_TYPE, STAGE_LABELS
 
     if not output_path:
         raise ValueError("必須指定索引 JSON 輸出路徑")

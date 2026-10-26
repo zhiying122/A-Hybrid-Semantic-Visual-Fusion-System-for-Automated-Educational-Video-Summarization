@@ -1,20 +1,16 @@
 # KeyTake AI 系統參數設定
-
-# ── 系統工具路徑自動偵測 ──────────────────────────────────────
-# 優先順序：環境變數 > shutil.which() 自動偵測 > 常見安裝路徑
+#
+# 工具路徑優先順序：環境變數 > shutil.which() > 常見安裝路徑
 import os as _os
 import shutil as _shutil
 
-def _find_ffmpeg():
-    """自動偵測 FFmpeg 路徑（跨平台）"""
-    # 1. 環境變數指定
+
+def _find_ffmpeg() -> str | None:
     env_path = _os.environ.get("FFMPEG_PATH", "")
     if env_path and _os.path.isdir(env_path):
         return env_path
-    # 2. 已在 PATH 中
     if _shutil.which("ffmpeg"):
-        return None  # 不需額外設定
-    # 3. 常見安裝路徑（各平台）
+        return None
     candidates = [
         r"C:\ffmpeg-8.1-essentials_build\bin",
         r"C:\ffmpeg\bin",
@@ -27,21 +23,14 @@ def _find_ffmpeg():
             return p
     return None
 
-_ffmpeg_dir = _find_ffmpeg()
-if _ffmpeg_dir:
-    _os.environ["PATH"] = _ffmpeg_dir + _os.pathsep + _os.environ.get("PATH", "")
 
-def _find_tesseract():
-    """自動偵測 Tesseract OCR 路徑（跨平台）"""
-    # 1. 環境變數指定
+def _find_tesseract() -> str | None:
     env_path = _os.environ.get("TESSERACT_PATH", "")
     if env_path and _os.path.isfile(env_path):
         return env_path
-    # 2. 已在 PATH 中
     which_result = _shutil.which("tesseract")
     if which_result:
         return which_result
-    # 3. 常見安裝路徑
     candidates = [
         r"C:\Program Files\Tesseract-OCR\tesseract.exe",
         r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
@@ -53,13 +42,18 @@ def _find_tesseract():
             return p
     return None
 
+
+_ffmpeg_dir = _find_ffmpeg()
+if _ffmpeg_dir:
+    _os.environ["PATH"] = _ffmpeg_dir + _os.pathsep + _os.environ.get("PATH", "")
+
 try:
     import pytesseract as _pytesseract
     _tesseract_cmd = _find_tesseract()
     if _tesseract_cmd:
         _pytesseract.pytesseract.tesseract_cmd = _tesseract_cmd
 except ImportError:
-    pass  # pytesseract 未安裝時跳過路徑設定，視覺模組自行處理降級
+    pass
 
 # ── 影音前處理 ──────────────────────────────────────
 AUDIO_SNR_THRESHOLD = 10.0        # SNR 低於此值才啟用頻譜減法
