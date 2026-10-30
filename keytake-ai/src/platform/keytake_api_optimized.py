@@ -19,6 +19,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+import config  # Load project .env settings before reading service configuration.
+
 UPLOAD_DIR = Path(os.getenv("KEYTAKE_UPLOAD_DIR", PROJECT_ROOT / "tmp" / "uploads")).resolve()
 OUTPUT_DIR = Path(os.getenv("KEYTAKE_OUTPUT_DIR", PROJECT_ROOT / "tmp" / "outputs")).resolve()
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -50,6 +52,26 @@ def _task_output_dir(task_id: str) -> Path:
     return OUTPUT_DIR / _validate_task_id(task_id)
 
 
+def _normalize_task_result(result: Any) -> Any:
+    """Keep the browser response shape stable across old and new Celery workers."""
+    if not isinstance(result, dict):
+        return result
+    indexed_segments = result.get("segments")
+    if (
+        not isinstance(indexed_segments, dict)
+        or not isinstance(indexed_segments.get("segments"), list)
+    ):
+        return result
+    return {
+        **result,
+        "segments": indexed_segments.get("segments", []),
+        "course_summary": result.get(
+            "course_summary",
+            indexed_segments.get("course_summary", {}),
+        ),
+    }
+
+
 def _get_task_store():
     from src.platform.task_store import task_store
     return task_store
@@ -70,6 +92,11 @@ def index():
     return {"message": "KeyTake AI API is running"}
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 @app.post("/upload", status_code=202)
 async def upload_video(file: UploadFile = File(...)):
     if not file.filename:
@@ -88,6 +115,7 @@ async def upload_video(file: UploadFile = File(...)):
     save_path = UPLOAD_DIR / f"{task_id}{extension}"
     total_bytes = 0
 
+    # 使用固定 task UUID 作檔名而不沿用使用者檔名，並逐塊檢查上限以控制記憶體用量。
     try:
         with save_path.open("wb") as destination:
             while True:
@@ -105,29 +133,12 @@ async def upload_video(file: UploadFile = File(...)):
         if total_bytes == 0:
             raise HTTPException(status_code=400, detail="上傳檔案是空的")
 
-        try:
-            from src.platform.celery_app import process_video_task
-
-            # Use one ID for both the API task and Celery task so status lookup is consistent.
-            celery_task = process_video_task.apply_async(
-                args=[task_id, str(save_path)],
-                task_id=task_id,
-            )
-            return {
-                "task_id": task_id,
-                "celery_task_id": celery_task.id,
-                "status": "queued",
-                "mode": "celery",
-            }
-        except Exception as exc:
-            # Fallback is opt-in to avoid accidentally running a task twice when enqueue
-            # succeeded remotely but the client connection failed before confirmation.
-            if os.getenv("KEYTAKE_SYNC_FALLBACK", "0").lower() not in {"1", "true", "yes"}:
-                raise HTTPException(
-                    status_code=503,
-                    detail="目前無法排入背景任務，請確認 Redis 與 Celery worker 狀態",
-                ) from exc
-
+        sync_fallback_enabled = os.getenv("KEYTAKE_SYNC_FALLBACK", "0").lower() in {
+            "1",
+            "true",
+            "yes",
+        }
+        if sync_fallback_enabled:
             task_store = _get_task_store()
             task_store[task_id] = {"status": "queued", "mode": "sync_fallback"}
             thread = threading.Thread(
@@ -142,6 +153,32 @@ async def upload_video(file: UploadFile = File(...)):
                 "status": "queued",
                 "mode": "sync_fallback",
             }
+
+        try:
+            from src.platform.celery_app import process_video_task
+
+            # Probe both Redis roles before publish; the result consumer can otherwise
+            # spend a long time retrying when the backend is offline.
+            celery_app = process_video_task.app
+            with celery_app.connection_for_write() as connection:
+                connection.ensure_connection(max_retries=0)
+            celery_app.backend.client.ping()
+
+            celery_task = process_video_task.apply_async(
+                args=[task_id, str(save_path)],
+                task_id=task_id,
+            )
+            return {
+                "task_id": task_id,
+                "celery_task_id": celery_task.id,
+                "status": "queued",
+                "mode": "celery",
+            }
+        except Exception as exc:
+            raise HTTPException(
+                status_code=503,
+                detail="目前無法排入背景任務，請確認 Redis 與 Celery worker 狀態",
+            ) from exc
     except Exception:
         if save_path.exists():
             save_path.unlink(missing_ok=True)
@@ -167,7 +204,10 @@ def get_status(task_id: str):
         state = result.state
 
         if state == "SUCCESS":
-            return {"status": "done", "result": result.result}
+            return {
+                "status": "done",
+                "result": _normalize_task_result(result.result),
+            }
         if state == "FAILURE":
             return {"status": "error", "error": str(result.result)}
         if state == "REVOKED":
@@ -229,7 +269,11 @@ def get_study_material(task_id: str, filename: str):
 def _run_sync(task_id: str, video_path: str) -> None:
     """Run the processing pipeline in a development-only background thread."""
     task_store = _get_task_store()
-    from src.output.video_exporter_optimized import export_index, export_summary_video
+    from src.output.video_exporter_optimized import (
+        export_index,
+        export_summary_video,
+        probe_video_duration,
+    )
 
     steps = [
         ("影音前處理", 0.10),
@@ -273,8 +317,19 @@ def _run_sync(task_id: str, video_path: str) -> None:
 
         segments = result.get("segments", [])
         update_progress(3, "輸出摘要影片...")
+        timeline_path = output_dir / "timeline.json"
+        timeline = []
+        summary_duration = result.get("summary_duration")
         if segments:
-            export_summary_video(video_path, segments, str(output_dir / "summary.mp4"))
+            summary_path = output_dir / "summary.mp4"
+            export_summary_video(
+                video_path,
+                segments,
+                str(summary_path),
+                timeline_output_path=str(timeline_path),
+            )
+            timeline = json.loads(timeline_path.read_text(encoding="utf-8"))
+            summary_duration = probe_video_duration(str(summary_path))
 
         export_index(
             segments,
@@ -301,8 +356,14 @@ def _run_sync(task_id: str, video_path: str) -> None:
                 "segments": index_data.get("segments", []),
                 "course_summary": index_data.get("course_summary", {}),
                 "original_duration": result.get("original_duration"),
-                "summary_duration": result.get("summary_duration"),
-                "time_saving_rate": result.get("time_saving_rate"),
+                "summary_duration": summary_duration,
+                "time_saving_rate": (
+                    1.0 - summary_duration / result["original_duration"]
+                    if summary_duration
+                    and result.get("original_duration", 0) > 0
+                    else result.get("time_saving_rate")
+                ),
+                "timeline": timeline,
             },
         }
     except Exception as exc:

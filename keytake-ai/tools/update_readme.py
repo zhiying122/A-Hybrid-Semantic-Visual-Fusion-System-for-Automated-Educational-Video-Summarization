@@ -99,7 +99,7 @@ FILE_DESCRIPTIONS = {
     "test_gesture_classifier.py": "手勢分類器",
     # weights
     "gesture_classifier.pth": "手勢分類器權重",
-    "mlp_fusion.pth": "MLP 融合模型權重",
+    "mlp_fusion_12d.pth": "12 維 MLP 融合模型權重（本機實驗產物）",
 }
 
 # 目錄用途說明

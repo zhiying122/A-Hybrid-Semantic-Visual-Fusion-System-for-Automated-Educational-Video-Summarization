@@ -593,6 +593,10 @@
   let taskId = null;
   let pollTimer = null;
   let indexData = [];
+  let timelineData = [];
+  let videoMode = "original";
+  let originalDuration = 0;
+  let summaryDuration = 0;
   let originalVideoUrl = null;
 
   // ── 上傳區互動 ──────────────────────────────────────────
@@ -618,6 +622,7 @@
     }
 
     // 本地預覽
+    if (originalVideoUrl) URL.revokeObjectURL(originalVideoUrl);
     const url = URL.createObjectURL(file);
     originalVideoUrl = url;
     const player = document.getElementById("videoPlayer");
@@ -631,6 +636,12 @@
 
   async function uploadVideo(file) {
     // 重置 UI 狀態
+    taskId = null;
+    indexData = [];
+    timelineData = [];
+    videoMode = "original";
+    originalDuration = 0;
+    summaryDuration = 0;
     document.getElementById("statsArea").style.display = "none";
     document.getElementById("indexList").innerHTML = '<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><p>處理中...</p></div>';
     document.getElementById("btnDownload").disabled = true;
@@ -692,13 +703,20 @@
 
   // ── 渲染結果 ────────────────────────────────────────────
   function renderResult(result) {
-    // v4：支援新格式（result.segments 直接是陣列或從舊格式讀取）
-    indexData = result.segments || [];
-    const total = result.original_duration || 1;
-    const summary = result.summary_duration || 0;
+    const indexedResult = result.segments;
+    indexData = Array.isArray(indexedResult)
+      ? indexedResult
+      : Array.isArray(indexedResult?.segments)
+        ? indexedResult.segments
+        : [];
+    timelineData = Array.isArray(result.timeline) ? result.timeline : [];
+    videoMode = "original";
+    originalDuration = Number(result.original_duration) || 0;
+    summaryDuration = Number(result.summary_duration) || 0;
 
     // ── v4：渲染課程摘要卡片 ──────────────────────────────
-    const courseSummary = result.course_summary || {};
+    const courseSummary =
+      result.course_summary || indexedResult?.course_summary || {};
     const courseCard = document.getElementById("courseCard");
     if (courseSummary.title || courseSummary.summary) {
       document.getElementById("courseTitle").textContent =
@@ -724,33 +742,16 @@
     // ── 統計卡片 ──────────────────────────────────────────
     document.getElementById("statsArea").style.display = "grid";
     document.getElementById("statsArea").classList.add("show");
-    document.getElementById("statOriginal").textContent = (total / 60).toFixed(1);
-    document.getElementById("statSummary").textContent  = (summary / 60).toFixed(1);
-    document.getElementById("statSaving").textContent   = ((1 - summary / total) * 100).toFixed(0) + "%";
+    document.getElementById("statOriginal").textContent = (originalDuration / 60).toFixed(1);
+    document.getElementById("statSummary").textContent  = (summaryDuration / 60).toFixed(1);
+    document.getElementById("statSaving").textContent = originalDuration > 0
+      ? ((1 - summaryDuration / originalDuration) * 100).toFixed(0) + "%"
+      : "--";
     document.getElementById("statSegments").textContent = indexData.length;
     document.getElementById("segCount").textContent     = `${indexData.length} 個片段`;
 
     // ── 時間軸 ────────────────────────────────────────────
-    const timeline = document.getElementById("timeline");
-    timeline.innerHTML = "";
-    const typeClassMap = {
-      semantic: "seg-semantic",
-      visual:   "seg-visual",
-      combined: "seg-combined"
-    };
-    indexData.forEach(seg => {
-      const div = document.createElement("div");
-      div.className = "timeline-segment " + (typeClassMap[seg.type] || "seg-combined");
-      div.style.left  = (seg.start_sec / total * 100) + "%";
-      div.style.width = ((seg.end_sec - seg.start_sec) / total * 100) + "%";
-      div.title = `${seg.timestamp} ${seg.label}`;
-      div.addEventListener("click", () => {
-        const player = document.getElementById("videoPlayer");
-        player.currentTime = seg.start_sec;
-        player.play();
-      });
-      timeline.appendChild(div);
-    });
+    renderTimeline();
 
     // ── 索引列表（v4：加入教學階段 badge）────────────────
     const list = document.getElementById("indexList");
@@ -793,23 +794,26 @@
       item.addEventListener("click", () => {
         document.querySelectorAll(".index-item").forEach(el => el.classList.remove("active"));
         item.classList.add("active");
-        const player = document.getElementById("videoPlayer");
-        player.currentTime = seg.start_sec;
-        player.play();
+        seekToSegment(seg);
       });
       list.appendChild(item);
     });
 
     // ── 啟用按鈕 ──────────────────────────────────────────
-    document.getElementById("btnDownload").disabled = false;
+    document.getElementById("btnDownload").disabled = timelineData.length === 0;
     document.getElementById("btnExport").disabled   = false;
+    document.getElementById("btnSummary").disabled = timelineData.length === 0;
+    document.getElementById("btnOriginal").className = "btn btn-primary";
+    document.getElementById("btnSummary").className = "btn btn-outline";
 
     // ── 時長對比條 ────────────────────────────────────────
     const durCompare = document.getElementById("durationCompare");
     durCompare.style.display = "block";
-    document.getElementById("durOrigLabel").textContent = (total / 60).toFixed(1) + " min";
-    document.getElementById("durSummLabel").textContent = (summary / 60).toFixed(1) + " min";
-    const pctWidth = total > 0 ? Math.round((summary / total) * 100) : 0;
+    document.getElementById("durOrigLabel").textContent = (originalDuration / 60).toFixed(1) + " min";
+    document.getElementById("durSummLabel").textContent = (summaryDuration / 60).toFixed(1) + " min";
+    const pctWidth = originalDuration > 0
+      ? Math.round((summaryDuration / originalDuration) * 100)
+      : 0;
     setTimeout(() => {
       document.getElementById("durSummaryBar").style.width = pctWidth + "%";
     }, 100);
@@ -818,18 +822,94 @@
     document.getElementById("videoSwitcher").style.display = "block";
   }
 
+  function getSummaryRange(segment) {
+    // timelineData 將原片 source 區間映射到摘要 output 區間；沒有有效 mapping 時不猜測時間。
+    return timelineData.find(mapping =>
+      Math.abs(Number(mapping.source_start) - Number(segment.start_sec)) < 0.02 &&
+      Math.abs(Number(mapping.source_end) - Number(segment.end_sec)) < 0.02
+    );
+  }
+
+  function seekToSegment(segment) {
+    const mapping = videoMode === "summary" ? getSummaryRange(segment) : null;
+    const target = videoMode === "summary"
+      ? Number(mapping?.output_start)
+      : Number(segment.start_sec);
+    if (!Number.isFinite(target)) return;
+
+    const player = document.getElementById("videoPlayer");
+    const seek = () => {
+      player.currentTime = Math.max(0, target);
+      player.play();
+    };
+    if (player.readyState >= 1) {
+      seek();
+    } else {
+      player.addEventListener("loadedmetadata", seek, { once: true });
+    }
+  }
+
+  function renderTimeline() {
+    const timeline = document.getElementById("timeline");
+    timeline.innerHTML = "";
+    const duration = videoMode === "summary"
+      ? summaryDuration
+      : originalDuration;
+    if (!Number.isFinite(duration) || duration <= 0) return;
+
+    const typeClassMap = {
+      semantic: "seg-semantic",
+      visual: "seg-visual",
+      combined: "seg-combined"
+    };
+    indexData.forEach(segment => {
+      const mapping = videoMode === "summary"
+        ? getSummaryRange(segment)
+        : null;
+      if (videoMode === "summary" && !mapping) return;
+
+      const start = videoMode === "summary"
+        ? Number(mapping.output_start)
+        : Number(segment.start_sec);
+      const end = videoMode === "summary"
+        ? Number(mapping.output_end)
+        : Number(segment.end_sec);
+      const clippedStart = Math.max(0, start);
+      const clippedEnd = Math.min(duration, end);
+      if (
+        !Number.isFinite(clippedStart) ||
+        !Number.isFinite(clippedEnd) ||
+        clippedEnd <= clippedStart
+      ) return;
+
+      const div = document.createElement("div");
+      div.className = "timeline-segment " + (typeClassMap[segment.type] || "seg-combined");
+      div.style.left = (clippedStart / duration * 100) + "%";
+      div.style.width = ((clippedEnd - clippedStart) / duration * 100) + "%";
+      div.title = `${segment.timestamp} ${segment.label}`;
+      div.addEventListener("click", () => seekToSegment(segment));
+      timeline.appendChild(div);
+    });
+  }
+
   // ── 重新上傳（重置整個 UI）────────────────────────────
   function resetUI() {
     // 停止輪詢
     clearInterval(pollTimer);
     taskId = null;
     indexData = [];
+    timelineData = [];
+    videoMode = "original";
+    originalDuration = 0;
+    summaryDuration = 0;
+    if (originalVideoUrl) URL.revokeObjectURL(originalVideoUrl);
     originalVideoUrl = null;
 
     // 重置影片播放器
     const player = document.getElementById("videoPlayer");
     player.pause();
     player.removeAttribute("src");
+    player.load();
     player.style.display = "none";
     document.getElementById("videoPlaceholder").style.display = "flex";
 
@@ -868,14 +948,22 @@
   function switchVideo(mode) {
     const player = document.getElementById("videoPlayer");
     if (mode === "summary" && taskId) {
+      if (!timelineData.length) return;
+      player.pause();
       player.src = `${API}/download/${taskId}`;
+      videoMode = "summary";
       document.getElementById("btnSummary").className = "btn btn-primary";
       document.getElementById("btnOriginal").className = "btn btn-outline";
     } else if (originalVideoUrl) {
+      player.pause();
       player.src = originalVideoUrl;
+      videoMode = "original";
       document.getElementById("btnOriginal").className = "btn btn-primary";
       document.getElementById("btnSummary").className = "btn btn-outline";
+    } else {
+      return;
     }
+    renderTimeline();
     player.play();
   }
 

@@ -14,7 +14,7 @@ import os
 import jieba
 import numpy as np
 from src.preprocessing.preprocessor_optimized import preprocess
-from src.semantic.transcriber_optimized import transcribe
+from src.semantic.transcriber_optimized import transcribe_with_metadata
 from src.semantic.semantic_scorer_optimized import SemanticScorer
 from src.semantic.prosodic_analyzer_optimized import ProsodicAnalyzer
 from src.visual.hand_tracker import HandTracker
@@ -55,6 +55,22 @@ def extract_keywords(text: str) -> list[str]:
     return keywords if keywords else [text]
 
 
+def _apply_prosodic_adjustment(base_score: float, segment: dict) -> float:
+    """只在韻律可用時以中心化倍率微調基礎融合分數；缺值不改變原分數。"""
+    available = segment.get("prosodic_available", "s_prosodic" in segment)
+    if not isinstance(available, bool):
+        raise ValueError("prosodic_available 必須是布林值")
+    if not available:
+        return float(base_score)
+
+    prosodic = float(segment["s_prosodic"])
+    if not np.isfinite(prosodic) or not 0.0 <= prosodic <= 1.0:
+        raise ValueError("s_prosodic 必須是介於 0 與 1 的有限數值")
+    # 以 0.5 為中性點：高於中性提高分數，低於中性降低分數，再裁回 [0, 1]。
+    prosodic_boost = 1.0 + PROSODIC_WEIGHT * (prosodic - 0.5) * 2
+    return float(np.clip(base_score * prosodic_boost, 0.0, 1.0))
+
+
 def run_pipeline(
     video_path: str,
     output_dir: str = "output",
@@ -78,7 +94,8 @@ def run_pipeline(
 
     print("\n[Step 2] 語音轉錄與語意評分...")
     _progress(1, "Whisper 語音轉錄中...")
-    segments = transcribe(paths["audio"])
+    transcription = transcribe_with_metadata(paths["audio"])
+    segments = transcription["segments"]
 
     _progress(1, "LLM 語意評分與教學結構分析中...")
     scorer = SemanticScorer(prompt_corpus=PROMPT_CORPUS)
@@ -94,8 +111,16 @@ def run_pipeline(
     _progress(1, "分析語速、音量、音高變化...")
     prosodic_analyzer = ProsodicAnalyzer()
     segments = prosodic_analyzer.analyze_segments(paths["audio"], segments)
-    avg_prosodic = np.mean([seg.get("s_prosodic", 0.5) for seg in segments])
-    print(f"           平均韻律分數：{avg_prosodic:.3f}")
+    available_prosodic = [
+        float(seg["s_prosodic"])
+        for seg in segments
+        if seg.get("prosodic_available", "s_prosodic" in seg)
+    ]
+    if available_prosodic:
+        avg_prosodic = float(np.mean(available_prosodic))
+        print(f"           平均韻律分數：{avg_prosodic:.3f}")
+    else:
+        print("           韻律分析不可用；融合時略過韻律加權")
 
     print("\n[Step 3] 視覺特徵提取（MediaPipe + GRU + OCR + CLIP）...")
     _progress(2, "初始化視覺與語意模型...")
@@ -108,8 +133,16 @@ def run_pipeline(
     reliability_estimator = VisualReliabilityEstimator()
 
     cap = cv2.VideoCapture(paths["video"])
-    fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+    if not cap.isOpened():
+        cap.release()
+        tracker.close()
+        raise RuntimeError(f"無法開啟前處理後的影片：{paths['video']}")
+    fps = cap.get(cv2.CAP_PROP_FPS)
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    if not np.isfinite(fps) or fps <= 0 or total_frames <= 0:
+        cap.release()
+        tracker.close()
+        raise RuntimeError(f"影片影格率或影格數無效：{paths['video']}")
     total_duration = total_frames / fps
 
     _progress(2, "執行多模態特徵提取（多幀取樣）...")
@@ -135,6 +168,47 @@ def run_pipeline(
             event = tracker.process_frame(frame)
 
             text_detection = text_detector.detect(frame)
+            if event["triggered"] and event["roi_center"]:
+                roi, (roi_x, roi_y) = tracker.extract_roi_with_origin(
+                    frame, event["roi_center"]
+                )
+                roi_hand_center = (
+                    event["roi_center"][0] - roi_x,
+                    event["roi_center"][1] - roi_y,
+                )
+            else:
+                roi = frame
+                roi_hand_center = None
+
+            asr_keywords = extract_keywords(seg["text"])
+            v_result = compute_visual_score_v2(
+                roi=roi,
+                hand_center=roi_hand_center,
+                asr_keywords=asr_keywords,
+                frame=frame,
+                text_detector=text_detector,
+                sbert_calculator=sbert_calculator,
+                srgan_enhancer=srgan_enhancer,
+            )
+            clip_score = (
+                clip_scorer.compute_clip_score_with_keywords(roi, asr_keywords)
+                if clip_scorer.is_available
+                else 0.0
+            )
+            # CLIP 可用且為正時才與 OCR 視覺分數加權；否則保留 OCR 路徑結果，避免缺測被當成負證據。
+            combined_visual = (
+                (1 - CLIP_WEIGHT) * v_result.score + CLIP_WEIGHT * clip_score
+            ) if clip_score > 0 else v_result.score
+            has_hand_trigger = bool(event["triggered"] and event["roi_center"])
+            adjusted_score = (
+                combined_visual * event.get("intent_score", 1.0)
+                if has_hand_trigger
+                else combined_visual
+            )
+            event["visual_available"] = bool(
+                v_result.text_detected or clip_score > 0 or v_result.score > 0
+            )
+
             reliability_signals = build_signals_from_tracker_result(
                 event,
                 text_boxes=text_detection.boxes,
@@ -145,34 +219,11 @@ def run_pipeline(
                 reliability_signals, base_beta=BETA
             )
 
-            if event["triggered"] and event["roi_center"]:
-                roi = tracker.extract_roi(frame, event["roi_center"])
-                asr_keywords = extract_keywords(seg["text"])
-                v_result = compute_visual_score_v2(
-                    roi=roi,
-                    hand_center=event["roi_center"],
-                    asr_keywords=asr_keywords,
-                    frame=frame,
-                    text_detector=text_detector,
-                    sbert_calculator=sbert_calculator,
-                    srgan_enhancer=srgan_enhancer,
-                )
-                clip_score = clip_scorer.compute_clip_score_with_keywords(
-                    roi, asr_keywords
-                ) if clip_scorer.is_available else 0.0
-                combined_visual = (
-                    (1 - CLIP_WEIGHT) * v_result.score + CLIP_WEIGHT * clip_score
-                ) if clip_score > 0 else v_result.score
-
-                intent_score = event.get("intent_score", 1.0)
-                adjusted_score = combined_visual * intent_score
-            else:
-                adjusted_score = event.get("intent_score", event["s_visual_raw"])
-                reliability_result.reliability = reliability_result.reliability * 0.5
-
             frame_scores.append({
                 "visual_score": adjusted_score,
                 "reliability": reliability_result.reliability,
+                "gesture_intent_score": event.get("intent_score", 0.0)
+                    if event.get("hand_detected") else 0.0,
                 "gesture_label": event.get("gesture_result", {}).label
                     if hasattr(event.get("gesture_result", None), "label") else "unknown",
             })
@@ -181,10 +232,12 @@ def run_pipeline(
             best = max(frame_scores, key=lambda x: x["visual_score"])
             seg["s_visual"] = best["visual_score"]
             seg["visual_reliability"] = best["reliability"]
+            seg["gesture_intent_score"] = best["gesture_intent_score"]
             seg["gesture_label"] = best.get("gesture_label", "unknown")
         else:
             seg["s_visual"] = 0.0
             seg["visual_reliability"] = 0.0
+            seg["gesture_intent_score"] = 0.0
             seg["gesture_label"] = "無手部"
 
     cap.release()
@@ -192,6 +245,7 @@ def run_pipeline(
     print("\n[Step 4] 多模態融合（語意 × 視覺 × 手勢意圖 × 韻律）...")
     _progress(3, "四模態融合分數計算中...")
 
+    # MLP 與解析式融合是互斥路徑；目前旗標預設關閉，避免小樣本模型改變正式輸出。
     if USE_MLP_FUSION:
         print("  [融合策略] MLP 可學習融合")
         fusion_scores = fuse_scores_mlp(segments)
@@ -203,15 +257,15 @@ def run_pipeline(
                 seg["s_visual"],
                 ALPHA,
                 BETA,
-                visual_reliability=seg.get("visual_reliability", 1.0),
+                visual_reliability=seg.get("visual_reliability", 0.0),
             )
-            # prosodic = 0.5 無影響；> 0.5 提升；< 0.5 壓低
-            prosodic = seg.get("s_prosodic", 0.5)
-            prosodic_boost = 1.0 + PROSODIC_WEIGHT * (prosodic - 0.5) * 2
-            final_score = float(np.clip(base_score * prosodic_boost, 0.0, 1.0))
-            fusion_scores.append(final_score)
+            fusion_scores.append(_apply_prosodic_adjustment(base_score, seg))
 
-    selected = semantic_sliding_window(segments, fusion_scores)
+    selected = semantic_sliding_window(
+        segments,
+        fusion_scores,
+        original_duration=total_duration,
+    )
 
     summary_duration = sum(s["end"] - s["start"] for s in selected)
     time_saving_rate = 1 - (summary_duration / total_duration) if total_duration > 0 else 0
@@ -233,6 +287,7 @@ def run_pipeline(
         "time_saving_rate": time_saving_rate,
         "course_summary": course_summary,
         "gesture_distribution": gesture_counts,
+        "transcription": transcription["metadata"],
     }
 
     try:

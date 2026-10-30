@@ -30,11 +30,12 @@ from config import (
 @dataclass
 class ReliabilitySignals:
     """視覺可靠度的原始訊號"""
-    hand_variance: float = 0.0           # 手部位移變異數（越低越穩定）
-    hand_confidence: float = 0.0         # MediaPipe 偵測信心度 [0, 1]
+    hand_variance: Optional[float] = None  # 手部位移變異數；None 表示沒有足夠追蹤資料
+    hand_confidence: Optional[float] = None  # MediaPipe 偵測信心度 [0, 1]
     text_density: float = 0.0            # 畫面板書文字框密度 [0, 1]
     hand_board_proximity: float = 0.0    # 手部與板書區域接近度 [0, 1]
     hand_detected: bool = False          # 本幀是否偵測到手部
+    visual_available: bool = True        # 本幀是否有對應的有效視覺分數
 
 
 @dataclass
@@ -72,8 +73,15 @@ class VisualReliabilityEstimator:
             ema_alpha:        EMA 平滑係數（越大越敏感，越小越穩定）
             min_reliability:  可靠度下限（避免視覺權重歸零導致退化為純語意）
         """
-        self.ema_alpha = ema_alpha
-        self.min_reliability = min_reliability
+        if not np.isfinite(ema_alpha) or not 0.0 <= ema_alpha <= 1.0:
+            raise ValueError("ema_alpha 必須介於 0 與 1")
+        if (
+            not np.isfinite(min_reliability)
+            or not 0.0 <= min_reliability <= 1.0
+        ):
+            raise ValueError("min_reliability 必須介於 0 與 1")
+        self.ema_alpha = float(ema_alpha)
+        self.min_reliability = float(min_reliability)
         self._ema_reliability: Optional[float] = None  # 初始未校準
 
     # ─────────────────────────────────────────────────────────────
@@ -87,25 +95,31 @@ class VisualReliabilityEstimator:
     ) -> ReliabilityResult:
         """計算本幀可靠度，並動態調整視覺權重 β_eff。
 
-        base_beta 來自 config.py 的靜態 Grid Search 最佳化結果；
-        β_eff = base_beta × R_visual，可靠度低時自動縮小視覺權重。
+        base_beta 由呼叫端提供（主流程使用 config.py 的目前基準值）；
+        它不是已驗證的最佳值。β_eff = base_beta × R_visual，
+        可靠度低時自動縮小視覺權重。
         """
+        if not np.isfinite(base_beta):
+            raise ValueError("base_beta 必須是有限數值")
+        base_beta = float(np.clip(base_beta, 0.0, 1.0))
         raw_reliability, dominant = self._compute_raw_reliability(signals)
 
-        # EMA 平滑
-        if self._ema_reliability is None:
-            self._ema_reliability = raw_reliability
+        if raw_reliability == 0.0:
+            # Missing observations are not low-quality observations; never carry
+            # a previous frame's confidence into a frame with no usable score.
+            self._ema_reliability = None
+            r = 0.0
         else:
-            self._ema_reliability = (
-                self.ema_alpha * raw_reliability
-                + (1 - self.ema_alpha) * self._ema_reliability
-            )
+            if self._ema_reliability is None:
+                self._ema_reliability = raw_reliability
+            else:
+                self._ema_reliability = (
+                    self.ema_alpha * raw_reliability
+                    + (1 - self.ema_alpha) * self._ema_reliability
+                )
+            r = max(self.min_reliability, min(1.0, self._ema_reliability))
 
-        # 夾在 [min_reliability, 1.0]
-        r = max(self.min_reliability, min(1.0, self._ema_reliability))
-
-        # 動態 β_eff：以可靠度線性縮放靜態 β（用 min 確保不超過 base_beta）
-        beta_eff = round(min(base_beta, base_beta * r), 4)
+        beta_eff = round(base_beta * r, 4)
 
         return ReliabilityResult(
             reliability=round(r, 4),
@@ -123,8 +137,10 @@ class VisualReliabilityEstimator:
     # ─────────────────────────────────────────────────────────────
 
     @staticmethod
-    def _hand_stability_score(variance: float) -> float:
+    def _hand_stability_score(variance: Optional[float]) -> float:
         """手部位移變異數轉穩定性分數（指數衰減映射）。"""
+        if variance is None or not np.isfinite(variance) or variance < 0:
+            return 0.0
         if variance <= 0:
             return 1.0
         threshold = HAND_VARIANCE_THRESHOLD
@@ -137,13 +153,39 @@ class VisualReliabilityEstimator:
         text_boxes: list[tuple[int, int, int, int]],
         frame_area: int,
     ) -> float:
-        """板書文字框面積佔畫面比例（對數壓縮）。"""
+        """板書文字框聯集面積佔畫面比例，避免重疊框重複計算。"""
         if frame_area <= 0 or not text_boxes:
             return 0.0
-        total_text_area = sum(
-            max(0, (x2 - x1)) * max(0, (y2 - y1))
+        boxes = [
+            (x1, y1, x2, y2)
             for x1, y1, x2, y2 in text_boxes
-        )
+            if x2 > x1 and y2 > y1
+        ]
+        if not boxes:
+            return 0.0
+
+        x_edges = sorted({edge for x1, _, x2, _ in boxes for edge in (x1, x2)})
+        total_text_area = 0.0
+        for left, right in zip(x_edges, x_edges[1:]):
+            if right <= left:
+                continue
+            intervals = sorted(
+                (y1, y2)
+                for x1, y1, x2, y2 in boxes
+                if x1 < right and x2 > left
+            )
+            covered_height = 0
+            if intervals:
+                interval_start, interval_end = intervals[0]
+                for start, end in intervals[1:]:
+                    if start <= interval_end:
+                        interval_end = max(interval_end, end)
+                    else:
+                        covered_height += interval_end - interval_start
+                        interval_start, interval_end = start, end
+                covered_height += interval_end - interval_start
+            total_text_area += (right - left) * covered_height
+
         raw_ratio = total_text_area / frame_area
         # 對數壓縮：避免文字非常密時分數過高
         score = min(1.0, np.log1p(raw_ratio * 20) / np.log1p(20))
@@ -185,66 +227,84 @@ class VisualReliabilityEstimator:
         self, signals: ReliabilitySignals
     ) -> tuple[float, str]:
         """將各子分數依 SIGNAL_WEIGHTS 加權合併，回傳（原始可靠度, 主要影響因素）。"""
-        if not signals.hand_detected:
+        if not signals.visual_available:
+            return 0.0, "visual_score_unavailable"
+        if not signals.hand_detected and signals.text_density <= 0:
             return 0.0, "no_hand_detected"
 
-        stability = self._hand_stability_score(signals.hand_variance)
-        confidence = float(np.clip(signals.hand_confidence, 0.0, 1.0))
-        density = float(np.clip(signals.text_density, 0.0, 1.0))
-        proximity = float(np.clip(signals.hand_board_proximity, 0.0, 1.0))
+        sub_scores = {}
+        if signals.hand_detected:
+            if (
+                signals.hand_variance is not None
+                and np.isfinite(signals.hand_variance)
+                and signals.hand_variance >= 0
+            ):
+                sub_scores["手部穩定性"] = self._hand_stability_score(
+                    signals.hand_variance
+                )
+            if (
+                signals.hand_confidence is not None
+                and np.isfinite(signals.hand_confidence)
+            ):
+                sub_scores["偵測信心度"] = float(
+                    np.clip(signals.hand_confidence, 0.0, 1.0)
+                )
+        if np.isfinite(signals.text_density):
+            sub_scores["板書文字密度"] = float(
+                np.clip(signals.text_density, 0.0, 1.0)
+            )
+        if signals.hand_detected and np.isfinite(signals.hand_board_proximity):
+            sub_scores["手板接近度"] = float(
+                np.clip(signals.hand_board_proximity, 0.0, 1.0)
+            )
+        if not sub_scores:
+            return 0.0, "no_valid_signals"
 
-        w = self.SIGNAL_WEIGHTS
-        raw = (
-            w["hand_stability"] * stability
-            + w["hand_confidence"] * confidence
-            + w["text_density"] * density
-            + w["proximity"] * proximity
-        )
-
-        # 找出主要影響因素（最低的子分數決定瓶頸）
-        sub_scores = {
-            "手部穩定性": stability,
-            "偵測信心度": confidence,
-            "板書文字密度": density,
-            "手板接近度": proximity,
+        weights = {
+            "手部穩定性": self.SIGNAL_WEIGHTS["hand_stability"],
+            "偵測信心度": self.SIGNAL_WEIGHTS["hand_confidence"],
+            "板書文字密度": self.SIGNAL_WEIGHTS["text_density"],
+            "手板接近度": self.SIGNAL_WEIGHTS["proximity"],
         }
+        # 缺少的訊號不當作 0；只對可用訊號重整權重，避免缺測被誤判為低品質。
+        available_weight = sum(weights[key] for key in sub_scores)
+        raw = sum(weights[key] * value for key, value in sub_scores.items())
+        raw /= available_weight
         dominant = min(sub_scores, key=sub_scores.get)
-
-        return float(raw), dominant
+        return float(np.clip(raw, 0.0, 1.0)), dominant
 
 
 def build_signals_from_tracker_result(
     tracker_result: dict,
-    text_boxes: list[tuple[int, int, int, int]] = None,
+    text_boxes: Optional[list[tuple[int, int, int, int]]] = None,
     frame_w: int = 640,
     frame_h: int = 480,
 ) -> ReliabilitySignals:
-    """從 HandTracker.process_frame() 回傳值和文字框列表建構 ReliabilitySignals。
-
-    hand_confidence 以 intent_score 作為代理值：intent_score 越高代表手勢越明確，
-    MediaPipe 偵測品質也通常越好，但兩者不完全等價。
-    """
+    """建構訊號；手勢意圖不作為追蹤信心度或位移穩定性的替代值。"""
     text_boxes = text_boxes or []
     triggered = tracker_result.get("triggered", False)
-    roi_center = tracker_result.get("roi_center")
-    s_raw = tracker_result.get("s_visual_raw", 0.0)
+    hand_detected = tracker_result.get("hand_detected", triggered)
+    hand_center = tracker_result.get("hand_center", tracker_result.get("roi_center"))
 
     # 直接呼叫靜態方法，不需建立完整的 VisualReliabilityEstimator 物件
     text_density = VisualReliabilityEstimator._text_density_score(
         text_boxes, frame_w * frame_h
     )
     proximity = VisualReliabilityEstimator._proximity_score(
-        roi_center, text_boxes, frame_w, frame_h
+        hand_center if hand_detected else None, text_boxes, frame_w, frame_h
     )
 
-    # 以 intent_score 反推近似 variance（用於手部穩定度計算）
-    # s_visual_raw ≈ 1 - variance / (2 * threshold)  →  variance ≈ (1 - s_raw) * 2 * threshold
-    approx_variance = (1.0 - min(s_raw, 1.0)) * 2.0 * HAND_VARIANCE_THRESHOLD
-
+    # HandTracker 目前未輸出 landmark confidence，因此該訊號會缺席並由上述規則重整權重。
     return ReliabilitySignals(
-        hand_variance=approx_variance,
-        hand_confidence=s_raw,
+        hand_variance=tracker_result.get("hand_variance"),
+        hand_confidence=tracker_result.get("hand_confidence"),
         text_density=text_density,
         hand_board_proximity=proximity,
-        hand_detected=triggered or (s_raw > 0),
+        hand_detected=bool(hand_detected),
+        visual_available=bool(
+            tracker_result.get(
+                "visual_available",
+                triggered and tracker_result.get("roi_center"),
+            )
+        ),
     )

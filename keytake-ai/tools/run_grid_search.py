@@ -1,103 +1,99 @@
-"""
-Grid Search 執行腳本
+"""Grid search static late-fusion weights on annotated validation videos."""
 
-在驗證集上以 0.1 步長掃描最佳 α/β 組合。
-
-用法：
-  cd keytake-ai
-  python tools/run_grid_search.py --annotations data/annotations/ --output results/grid_search.json
-"""
-
-import json
 import argparse
+import json
 import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from src.fusion.adaptive_fusion import grid_search_weights, fuse_scores, semantic_sliding_window
-from src.fusion.evaluator import compute_recall
-from config import FUSION_SCORE_THRESHOLD
+from src.fusion.adaptive_fusion import grid_search_weights_by_video
+from src.fusion.evaluation_data import load_annotated_video
 
 
-def load_annotated_video(seg_path: str, gt_path: str) -> dict:
-    """載入一部影片的語意分數片段與 Ground Truth"""
-    with open(seg_path, encoding="utf-8") as f:
-        segments = json.load(f)
-    with open(gt_path, encoding="utf-8") as f:
-        gt_data = json.load(f)
-    ground_truth = [(g["start_sec"], g["end_sec"]) for g in gt_data["ground_truth"]]
-    return {"segments": segments, "ground_truth": ground_truth}
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Grid Search 最佳 α/β 權重")
-    parser.add_argument("--annotations", default="data/annotations",
-                        help="標註資料夾（含 segments_*.json 與 gt_*.json）")
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Grid Search on explicitly selected validation videos"
+    )
+    parser.add_argument(
+        "--annotations",
+        default="data/annotations",
+        help="包含 gt_*.json 的 Ground Truth 資料夾",
+    )
+    parser.add_argument(
+        "--features-dir",
+        default="results/features_12d",
+        help="包含 features_<video>.json 的多模態特徵資料夾",
+    )
     parser.add_argument("--output", default="results/grid_search.json")
-    parser.add_argument("--step", type=float, default=0.1, help="搜尋步長")
+    parser.add_argument("--step", type=float, default=0.1)
+    parser.add_argument(
+        "--fusion-mode",
+        choices=("adaptive", "static"),
+        default="adaptive",
+    )
+    parser.add_argument(
+        "--validation-video",
+        action="append",
+        required=True,
+        help="validation 影片 ID（不含 segments_ 前綴；可重複指定）",
+    )
     args = parser.parse_args()
 
-    # 掃描標註資料夾（支援 example/ 子資料夾）
-    ann_dir = args.annotations
-    if not os.path.exists(ann_dir):
-        print(f"找不到標註資料夾：{ann_dir}")
-        print("請先執行 tools/export_transcript.py 與 tools/annotator.py 產生標註資料")
-        sys.exit(1)
+    if not os.path.isdir(args.annotations):
+        parser.error(f"找不到標註資料夾：{args.annotations}")
+    if not os.path.isdir(args.features_dir):
+        parser.error(f"找不到特徵資料夾：{args.features_dir}")
+    if len(set(args.validation_video)) != len(args.validation_video):
+        parser.error("--validation-video 不可重複指定")
 
-    # 優先掃描根目錄，若無資料則嘗試 example/ 子資料夾
-    seg_files = sorted(f for f in os.listdir(ann_dir) if f.startswith("segments_"))
-    if not seg_files:
-        example_dir = os.path.join(ann_dir, "example")
-        if os.path.exists(example_dir):
-            print(f"根目錄無資料，使用範例資料：{example_dir}")
-            ann_dir = example_dir
-            seg_files = sorted(f for f in os.listdir(ann_dir) if f.startswith("segments_"))
-    if not seg_files:
-        print("找不到 segments_*.json 檔案，請確認標註資料夾內容")
-        sys.exit(1)
+    videos = []
+    for video_id in args.validation_video:
+        features_path = os.path.join(
+            args.features_dir,
+            f"features_{video_id}.json",
+        )
+        gt_path = os.path.join(args.annotations, f"gt_{video_id}.json")
+        if not os.path.isfile(features_path):
+            parser.error(f"找不到 validation 特徵檔：{features_path}")
+        if not os.path.isfile(gt_path):
+            parser.error(f"找不到 validation Ground Truth：{gt_path}")
+        videos.append(load_annotated_video(features_path, gt_path))
 
-    all_segments, all_gt = [], []
-    for sf in seg_files:
-        vid_id = sf.replace("segments_", "").replace(".json", "")
-        gt_file = f"gt_{vid_id}.json"
-        gt_path = os.path.join(ann_dir, gt_file)
-        if not os.path.exists(gt_path):
-            print(f"跳過 {sf}（找不到對應的 {gt_file}）")
-            continue
-        data = load_annotated_video(os.path.join(ann_dir, sf), gt_path)
-        all_segments.extend(data["segments"])
-        all_gt.extend(data["ground_truth"])
-
-    if not all_segments:
-        print("沒有可用的標註資料")
-        sys.exit(1)
-
-    print(f"載入 {len(seg_files)} 部影片，共 {len(all_segments)} 個片段，{len(all_gt)} 個 GT")
-
-    # 執行 Grid Search
-    best_alpha, best_beta = grid_search_weights(all_segments, all_gt, step=args.step)
-
-    # 用最佳參數計算最終 Recall
-    scores = [fuse_scores(s["s_text"], s.get("s_visual", 0.0), best_alpha, best_beta)
-              for s in all_segments]
-    selected = [s for s, sc in zip(all_segments, scores) if sc >= FUSION_SCORE_THRESHOLD]
-    final_recall = compute_recall(selected, all_gt)
-
+    print(
+        f"載入 {len(videos)} 部影片、"
+        f"{sum(len(video['segments']) for video in videos)} 個片段、"
+        f"{sum(len(video['ground_truth']) for video in videos)} 個 Ground Truth"
+    )
+    best_alpha, best_beta, metrics = grid_search_weights_by_video(
+        videos,
+        step=args.step,
+        fusion_mode=args.fusion_mode,
+    )
     result = {
         "best_alpha": best_alpha,
         "best_beta": best_beta,
-        "recall_on_validation": round(final_recall, 4),
-        "total_segments": len(all_segments),
-        "total_gt": len(all_gt)
+        "validation_metrics": metrics,
+        "recall_on_validation": round(metrics["recall"], 4),
+        "total_videos": len(videos),
+        "total_segments": sum(len(video["segments"]) for video in videos),
+        "total_gt": sum(len(video["ground_truth"]) for video in videos),
+        "video_ids": [video["video_id"] for video in videos],
+        "selection_policy": "semantic_sliding_window_per_video",
+        "objective": "macro_f1",
+        "fusion_mode": args.fusion_mode,
     }
 
     os.makedirs(os.path.dirname(args.output) or ".", exist_ok=True)
-    with open(args.output, "w", encoding="utf-8") as f:
-        json.dump(result, f, indent=2)
+    with open(args.output, "w", encoding="utf-8") as file:
+        json.dump(result, file, ensure_ascii=False, indent=2)
 
-    print(f"\n最佳參數：α={best_alpha}, β={best_beta}")
-    print(f"驗證集 Recall：{final_recall:.4f}")
+    print(
+        f"\n最佳參數：alpha={best_alpha:.2f}, beta={best_beta:.2f}; "
+        f"Recall={metrics['recall']:.4f}, "
+        f"Precision={metrics['precision']:.4f}, "
+        f"F1={metrics['f1_score']:.4f}"
+    )
     print(f"結果儲存至：{args.output}")
 
 

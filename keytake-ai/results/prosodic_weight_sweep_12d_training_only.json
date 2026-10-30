@@ -1,0 +1,205 @@
+{
+  "data_scope": "training_validation_only",
+  "validation_videos": [
+    "lecture_01_math_homework",
+    "lecture_02_trigonometry",
+    "lecture_03_mental_math"
+  ],
+  "independent_test_used": false,
+  "fixed_alpha": 0.6,
+  "fixed_beta": 0.4,
+  "configured_prosodic_weight": 0.15,
+  "objective": "macro_f1",
+  "prosodic_adjustment": "clip(base * (1 + weight * (s_prosodic - 0.5) * 2), 0, 1); skip unavailable",
+  "results": [
+    {
+      "prosodic_weight": 0.0,
+      "macro_f1": 0.5332,
+      "per_video": [
+        {
+          "video": "lecture_01_math_homework",
+          "recall": 0.5161,
+          "precision": 0.5217,
+          "f1": 0.5189,
+          "prosodic_available_segments": 76
+        },
+        {
+          "video": "lecture_02_trigonometry",
+          "recall": 0.4583,
+          "precision": 0.7778,
+          "f1": 0.5768,
+          "prosodic_available_segments": 33
+        },
+        {
+          "video": "lecture_03_mental_math",
+          "recall": 0.3968,
+          "precision": 0.6897,
+          "f1": 0.5038,
+          "prosodic_available_segments": 131
+        }
+      ]
+    },
+    {
+      "prosodic_weight": 0.05,
+      "macro_f1": 0.5332,
+      "per_video": [
+        {
+          "video": "lecture_01_math_homework",
+          "recall": 0.5161,
+          "precision": 0.5217,
+          "f1": 0.5189,
+          "prosodic_available_segments": 76
+        },
+        {
+          "video": "lecture_02_trigonometry",
+          "recall": 0.4583,
+          "precision": 0.7778,
+          "f1": 0.5768,
+          "prosodic_available_segments": 33
+        },
+        {
+          "video": "lecture_03_mental_math",
+          "recall": 0.3968,
+          "precision": 0.6897,
+          "f1": 0.5038,
+          "prosodic_available_segments": 131
+        }
+      ]
+    },
+    {
+      "prosodic_weight": 0.1,
+      "macro_f1": 0.5311,
+      "per_video": [
+        {
+          "video": "lecture_01_math_homework",
+          "recall": 0.5161,
+          "precision": 0.5217,
+          "f1": 0.5189,
+          "prosodic_available_segments": 76
+        },
+        {
+          "video": "lecture_02_trigonometry",
+          "recall": 0.4583,
+          "precision": 0.7778,
+          "f1": 0.5768,
+          "prosodic_available_segments": 33
+        },
+        {
+          "video": "lecture_03_mental_math",
+          "recall": 0.3968,
+          "precision": 0.6667,
+          "f1": 0.4975,
+          "prosodic_available_segments": 131
+        }
+      ]
+    },
+    {
+      "prosodic_weight": 0.15,
+      "macro_f1": 0.5311,
+      "per_video": [
+        {
+          "video": "lecture_01_math_homework",
+          "recall": 0.5161,
+          "precision": 0.5217,
+          "f1": 0.5189,
+          "prosodic_available_segments": 76
+        },
+        {
+          "video": "lecture_02_trigonometry",
+          "recall": 0.4583,
+          "precision": 0.7778,
+          "f1": 0.5768,
+          "prosodic_available_segments": 33
+        },
+        {
+          "video": "lecture_03_mental_math",
+          "recall": 0.3968,
+          "precision": 0.6667,
+          "f1": 0.4975,
+          "prosodic_available_segments": 131
+        }
+      ]
+    },
+    {
+      "prosodic_weight": 0.2,
+      "macro_f1": 0.527,
+      "per_video": [
+        {
+          "video": "lecture_01_math_homework",
+          "recall": 0.5161,
+          "precision": 0.5217,
+          "f1": 0.5189,
+          "prosodic_available_segments": 76
+        },
+        {
+          "video": "lecture_02_trigonometry",
+          "recall": 0.4583,
+          "precision": 0.7778,
+          "f1": 0.5768,
+          "prosodic_available_segments": 33
+        },
+        {
+          "video": "lecture_03_mental_math",
+          "recall": 0.3968,
+          "precision": 0.625,
+          "f1": 0.4854,
+          "prosodic_available_segments": 131
+        }
+      ]
+    },
+    {
+      "prosodic_weight": 0.25,
+      "macro_f1": 0.5521,
+      "per_video": [
+        {
+          "video": "lecture_01_math_homework",
+          "recall": 0.5161,
+          "precision": 0.5217,
+          "f1": 0.5189,
+          "prosodic_available_segments": 76
+        },
+        {
+          "video": "lecture_02_trigonometry",
+          "recall": 0.5,
+          "precision": 0.8889,
+          "f1": 0.64,
+          "prosodic_available_segments": 33
+        },
+        {
+          "video": "lecture_03_mental_math",
+          "recall": 0.3968,
+          "precision": 0.6667,
+          "f1": 0.4975,
+          "prosodic_available_segments": 131
+        }
+      ]
+    },
+    {
+      "prosodic_weight": 0.3,
+      "macro_f1": 0.5611,
+      "per_video": [
+        {
+          "video": "lecture_01_math_homework",
+          "recall": 0.5161,
+          "precision": 0.5217,
+          "f1": 0.5189,
+          "prosodic_available_segments": 76
+        },
+        {
+          "video": "lecture_02_trigonometry",
+          "recall": 0.5417,
+          "precision": 0.8889,
+          "f1": 0.6731,
+          "prosodic_available_segments": 33
+        },
+        {
+          "video": "lecture_03_mental_math",
+          "recall": 0.3968,
+          "precision": 0.6452,
+          "f1": 0.4914,
+          "prosodic_available_segments": 131
+        }
+      ]
+    }
+  ]
+}

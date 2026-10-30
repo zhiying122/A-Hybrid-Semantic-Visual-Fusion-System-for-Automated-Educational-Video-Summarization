@@ -108,6 +108,7 @@ def estimate_snr(audio_samples: np.ndarray, sr: int = 16000) -> float:
     if signal_power <= 0:
         return 0.0
 
+    # 以全片平均能量對最低 10% 音框能量作比值；這是啟發式估計，不是校正過的實測 SNR。
     noise_power = float(np.percentile(frame_power, 10))
     if noise_power <= 0:
         return float("inf")
@@ -174,7 +175,7 @@ def preprocess(input_path: str, output_dir: str) -> dict:
     """執行影片轉檔、音訊擷取與條件式降噪。
 
     Returns:
-        dict，含 video、audio（路徑）、snr（float，NaN 表示無法計算）、denoised（bool）。
+        dict，含 video、audio 路徑、啟發式 snr、snr_type 與 denoised 狀態。
     """
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
@@ -202,6 +203,7 @@ def preprocess(input_path: str, output_dir: str) -> dict:
             audio_samples = np.frombuffer(raw_bytes, dtype="<i2").astype(np.float32)
             snr = estimate_snr(audio_samples, sr=sample_rate)
 
+            # 門檻只控制是否做頻譜減法；本身未經人工音質標籤校準。
             if snr < AUDIO_SNR_THRESHOLD:
                 cleaned = apply_spectral_subtraction(audio_samples, sr=sample_rate)
                 peak = float(np.max(np.abs(cleaned))) if cleaned.size else 0.0
@@ -222,5 +224,6 @@ def preprocess(input_path: str, output_dir: str) -> dict:
         "video": str(video_out),
         "audio": str(audio_out),
         "snr": snr,
+        "snr_type": "heuristic_energy_ratio",
         "denoised": denoised,
     }

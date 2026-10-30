@@ -24,6 +24,7 @@ from src.semantic.llm_cache_optimized import LLMCache
 TEACHING_STAGE_TYPES = {
     "definition", "derivation", "example", "summary", "transition", "qa"
 }
+UNCLASSIFIED_STAGE = "unclassified"
 
 STAGE_LABELS = {
     "definition": "概念定義",
@@ -32,6 +33,7 @@ STAGE_LABELS = {
     "summary": "重點總結",
     "transition": "過渡換場",
     "qa": "問答互動",
+    UNCLASSIFIED_STAGE: "未分類",
 }
 
 STAGE_TO_SEG_TYPE = {
@@ -41,15 +43,7 @@ STAGE_TO_SEG_TYPE = {
     "summary": "combined",
     "transition": "semantic",
     "qa": "semantic",
-}
-
-STAGE_WEIGHT = {
-    "definition": 1.1,
-    "derivation": 1.2,
-    "example": 1.0,
-    "summary": 1.1,
-    "transition": 0.3,
-    "qa": 0.8,
+    UNCLASSIFIED_STAGE: "semantic",
 }
 
 LLM_PROMPT_TEMPLATE = """你是教學影片智能分析助手。請分析以下課堂逐字稿片段，並只輸出 JSON：
@@ -114,24 +108,12 @@ class SemanticScorer:
         if self.mode not in {"sbert", "llm", "tfidf"}:
             raise ValueError("mode 必須是 sbert、llm 或 tfidf")
 
-        if self.mode == "sbert" and self._has_llm_key():
-            self.mode = "llm"
-            print("[SemanticScorer] 偵測到 LLM 設定，切換至 LLM 模式")
-
         if self.mode == "llm":
             self._init_llm()
         elif self.mode == "sbert":
             self._init_sbert()
 
         print(f"[SemanticScorer] 模式：{self.mode}")
-
-    @staticmethod
-    def _has_llm_key() -> bool:
-        return bool(
-            os.getenv("OPENAI_API_KEY")
-            or os.getenv("GROQ_API_KEY")
-            or os.getenv("OLLAMA_URL")
-        )
 
     def _fallback_from_llm(self, reason: Exception) -> None:
         print(f"[SemanticScorer] LLM 初始化失敗：{reason}")
@@ -145,7 +127,10 @@ class SemanticScorer:
                 api_key = os.getenv("OPENAI_API_KEY")
                 if not api_key:
                     raise ValueError("未設定 OPENAI_API_KEY")
-                self.llm_client = OpenAI(api_key=api_key)
+                self.llm_client = OpenAI(
+                    api_key=api_key,
+                    timeout=float(os.getenv("LLM_TIMEOUT_SEC", "60")),
+                )
                 self.llm_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
             elif self.llm_backend == "groq":
@@ -154,7 +139,10 @@ class SemanticScorer:
                 api_key = os.getenv("GROQ_API_KEY")
                 if not api_key:
                     raise ValueError("未設定 GROQ_API_KEY")
-                self.llm_client = Groq(api_key=api_key)
+                self.llm_client = Groq(
+                    api_key=api_key,
+                    timeout=float(os.getenv("LLM_TIMEOUT_SEC", "60")),
+                )
                 self.llm_model = os.getenv("GROQ_MODEL", "llama3-8b-8192")
 
             elif self.llm_backend == "ollama":
@@ -211,16 +199,17 @@ class SemanticScorer:
         if self.mode == "llm":
             scores, stages, summaries = self._llm_scores(segments)
         elif self.mode == "sbert":
+            # SBERT 取逐字稿與教學提示語料的最大 cosine，再與同批 TF-IDF 分數等權混合；
+            # 此值用於排序，不是人工標定的教學重要性機率。
             alpha = float(np.clip(alpha_tfidf, 0.0, 1.0))
             tfidf = self.tfidf_scores(segments)
             semantic = self.sbert_scores(segments)
             scores = alpha * tfidf + (1.0 - alpha) * semantic
-            # SBERT/tfidf 模式無法判斷教學階段，統一標記為 "transition"（中性值）
-            stages = ["transition"] * len(segments)
+            stages = [UNCLASSIFIED_STAGE] * len(segments)
             summaries = [text[:20] for text in texts]
         else:
             scores = self.tfidf_scores(segments)
-            stages = ["transition"] * len(segments)
+            stages = [UNCLASSIFIED_STAGE] * len(segments)
             summaries = [text[:20] for text in texts]
 
         for i, segment in enumerate(segments):
@@ -299,7 +288,7 @@ class SemanticScorer:
         self, segments: list[dict]
     ) -> tuple[np.ndarray, list[str], list[str]]:
         scores = np.full(len(segments), 0.5, dtype=float)
-        stages = ["transition"] * len(segments)
+        stages = [UNCLASSIFIED_STAGE] * len(segments)
         summaries = [""] * len(segments)
 
         for i, segment in enumerate(segments):
@@ -313,19 +302,17 @@ class SemanticScorer:
             try:
                 result = self._query_llm_structured(text)
                 raw_score = self._safe_score(result.get("score", 0.5))
-                stage = result.get("stage")
-                if stage not in TEACHING_STAGE_TYPES:
-                    stage = "transition"
-                scores[i] = float(
-                    np.clip(raw_score * STAGE_WEIGHT.get(stage, 1.0), 0, 1)
-                )
+                raw_stage = result.get("stage")
+                stage_is_valid = raw_stage in TEACHING_STAGE_TYPES
+                stage = raw_stage if stage_is_valid else UNCLASSIFIED_STAGE
+                scores[i] = raw_score
                 stages[i] = stage
                 summary = result.get("summary", text[:20])
                 summaries[i] = str(summary).strip()[:100] or text[:20]
             except Exception as exc:
                 print(f"[SemanticScorer] 片段 {i} 評分失敗：{exc}")
                 scores[i] = 0.5
-                stages[i] = "transition"
+                stages[i] = UNCLASSIFIED_STAGE
                 summaries[i] = text[:20]
 
         self._cache.flush()
@@ -341,12 +328,20 @@ class SemanticScorer:
 
     def _query_llm_structured(self, text: str) -> dict:
         """先查快取，再呼叫 LLM；只快取已驗證的結構化結果。"""
-        cached = self._cache.get(text)
+        cache_key = json.dumps(
+            {
+                "backend": self.llm_backend,
+                "model": self.llm_model,
+                "prompt": LLM_PROMPT_TEMPLATE,
+                "text": text,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+        cached = self._cache.get(cache_key)
         if isinstance(cached, dict) and "score" in cached:
             result = dict(cached)
             result["score"] = self._safe_score(result["score"])
-            if result.get("stage") not in TEACHING_STAGE_TYPES:
-                result["stage"] = "transition"
             return result
 
         prompt = LLM_PROMPT_TEMPLATE.format(text=text[:400])
@@ -358,14 +353,11 @@ class SemanticScorer:
             result = {"score": float(match.group()) if match else 0.5}
 
         result["score"] = self._safe_score(result.get("score", 0.5))
-        if result.get("stage") not in TEACHING_STAGE_TYPES:
-            result["stage"] = "transition"
         summary = result.get("summary", text[:20])
         result["summary"] = str(summary).strip()[:100] or text[:20]
 
-        # 只有同時包含 score + stage + summary 的完整結果才快取
-        if "stage" in result and "summary" in result:
-            self._cache.put(text, result)
+        if result.get("stage") in TEACHING_STAGE_TYPES and "summary" in result:
+            self._cache.put(cache_key, result)
         return result
 
     def _call_llm_raw(self, prompt: str, max_tokens: int = 80) -> str:
@@ -408,7 +400,7 @@ class SemanticScorer:
         return self._safe_score(self._query_llm_structured(text).get("score", 0.5))
 
     def tfidf_scores(self, segments: list[dict]) -> np.ndarray:
-        """以 TF-IDF 特徵總量估計片段關鍵詞程度。"""
+        """以平均 TF-IDF 權重估計片段關鍵詞程度；只適合本批次相對排序。"""
         texts = [str(seg.get("text", "") or "").strip() for seg in segments]
         if not texts or not any(texts):
             return np.zeros(len(texts), dtype=float)
@@ -416,14 +408,22 @@ class SemanticScorer:
         try:
             vectorizer = TfidfVectorizer(max_features=TFIDF_TOP_K)
             matrix = vectorizer.fit_transform(texts)
-            scores = np.asarray(matrix.sum(axis=1)).ravel()
+            # 每段取其非零詞 TF-IDF 的平均值，再除以本批最大值得到 [0, 1] 相對分數。
+            totals = np.asarray(matrix.sum(axis=1)).ravel()
+            token_counts = np.diff(matrix.indptr)
+            scores = np.divide(
+                totals,
+                token_counts,
+                out=np.zeros_like(totals, dtype=float),
+                where=token_counts > 0,
+            )
             maximum = float(scores.max()) if scores.size else 0.0
             return scores / maximum if maximum > 0 else np.zeros(len(texts))
         except ValueError:
             return np.zeros(len(texts), dtype=float)
 
     def sbert_scores(self, segments: list[dict]) -> np.ndarray:
-        """批次計算片段與提示語料庫的最大餘弦相似度。"""
+        """Return max cosine similarity to the prompt corpus, not calibrated importance."""
         if self.sbert is None or self.corpus_embeddings is None:
             return np.zeros(len(segments), dtype=float)
 
@@ -440,6 +440,7 @@ class SemanticScorer:
             show_progress_bar=False,
         )
         similarities = util.cos_sim(embeddings, self.corpus_embeddings)
+        # 對每個片段取最相近的提示句，而非對整個課程做監督式重要性校準。
         maxima = similarities.max(dim=1).values.detach().cpu().numpy()
         for index, value in zip(valid_indices, maxima):
             scores[index] = float(np.clip(value, 0.0, 1.0))

@@ -1,0 +1,21 @@
+{
+  "best_alpha": 0.5,
+  "best_beta": 0.5,
+  "validation_metrics": {
+    "recall": 0.4570959208055982,
+    "precision": 0.6665056360708534,
+    "f1_score": 0.534070082049724
+  },
+  "recall_on_validation": 0.4571,
+  "total_videos": 3,
+  "total_segments": 240,
+  "total_gt": 118,
+  "video_ids": [
+    "lecture_01_math_homework",
+    "lecture_02_trigonometry",
+    "lecture_03_mental_math"
+  ],
+  "selection_policy": "semantic_sliding_window_per_video",
+  "objective": "macro_f1",
+  "fusion_mode": "adaptive"
+}

@@ -52,7 +52,7 @@ class CLIPScorer:
         self.device = "cpu"
         
         self._load_model()
-        self.__class__._initialized = True
+        self.__class__._initialized = self.available
 
     @classmethod
     def get_instance(cls, model_name: Optional[str] = None) -> "CLIPScorer":
@@ -74,17 +74,30 @@ class CLIPScorer:
             logger.warning(f"[CLIPScorer] 模型載入失敗 ({e})，評分將返回 0.0")
             self.available = False
 
-    def compute_clip_score(self, roi: np.ndarray, text: str) -> float:
-        """計算 ROI 影像與文字的 CLIP 語意相似度 [0, 1]。
+    def compute_clip_score(
+        self,
+        roi: np.ndarray,
+        text: str,
+        color_format: str = "bgr",
+    ) -> float:
+        """Return clipped cosine similarity, not a probability or importance score."""
+        if not self.available:
+            return 0.0
 
-        CLIP 的圖文嵌入已 L2 正規化，cosine_sim 實務上分布在 [0.1, 0.4] 附近，
-        直接 clip 至 [0, 1] 比 (x+1)/2 映射更符合實際量尺。
-        """
-        if not self.available or roi is None or roi.size == 0 or not text.strip():
+        if not isinstance(roi, np.ndarray) or roi.size == 0:
+            logger.warning("[CLIPScorer] ROI 必須是非空的 NumPy 影像")
+            return 0.0
+        if roi.ndim != 3 or roi.shape[2] != 3:
+            logger.warning("[CLIPScorer] ROI 必須是三通道彩色影像")
+            return 0.0
+        if color_format not in {"bgr", "rgb"}:
+            raise ValueError("color_format 必須是 'bgr' 或 'rgb'")
+        if not isinstance(text, str) or not text.strip():
             return 0.0
 
         try:
-            pil_image = Image.fromarray(roi[:, :, ::-1])
+            rgb_image = roi[:, :, ::-1] if color_format == "bgr" else roi
+            pil_image = Image.fromarray(np.ascontiguousarray(rgb_image))
 
             inputs = self.processor(
                 text=[text.strip()],
@@ -94,30 +107,45 @@ class CLIPScorer:
             )
             inputs = {k: v.to(self.device) for k, v in inputs.items()}
 
+            # 兩個 encoder 輸出共同嵌入；cosine 只表示對齊程度，不能解讀成機率。
             with torch.no_grad():
                 outputs = self.model(**inputs)
 
             cosine_sim = torch.nn.functional.cosine_similarity(
                 outputs.image_embeds, outputs.text_embeds
             ).item()
+            if not np.isfinite(cosine_sim):
+                raise ValueError("CLIP 相似度不是有限數值")
 
-            return float(max(0.0, min(cosine_sim, 1.0)))
+            # 專案把負相似度裁成 0，方便後續 [0,1] 分數融合；因此丟失了負值資訊。
+            return float(np.clip(cosine_sim, 0.0, 1.0))
 
         except Exception as e:
             logger.warning(f"[CLIPScorer] 計算失敗: {e}")
             return 0.0
 
-    def compute_clip_score_with_keywords(self, roi: np.ndarray, asr_keywords: list[str]) -> float:
+    def compute_clip_score_with_keywords(
+        self,
+        roi: np.ndarray,
+        asr_keywords: list[str],
+        color_format: str = "bgr",
+    ) -> float:
         if not asr_keywords:
             return 0.0
 
-        # CLIP text encoder 限制 77 tokens；關鍵字過多時截取前 20 個以避免截斷
-        keywords = [kw.strip() for kw in asr_keywords if kw.strip()]
-        combined_text = " ".join(keywords[:20])
-        if not combined_text:
+        keywords = [
+            keyword.strip()
+            for keyword in asr_keywords
+            if isinstance(keyword, str) and keyword.strip()
+        ]
+        if not keywords:
             return 0.0
 
-        return self.compute_clip_score(roi, combined_text)
+        scores = [
+            self.compute_clip_score(roi, keyword, color_format=color_format)
+            for keyword in keywords[:20]
+        ]
+        return float(np.mean(scores)) if scores else 0.0
 
     @property
     def is_available(self) -> bool:

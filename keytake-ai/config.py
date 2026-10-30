@@ -3,6 +3,11 @@
 # 工具路徑優先順序：環境變數 > shutil.which() > 常見安裝路徑
 import os as _os
 import shutil as _shutil
+from pathlib import Path as _Path
+
+from dotenv import load_dotenv as _load_dotenv
+
+_load_dotenv(_Path(__file__).with_name(".env"))
 
 
 def _find_ffmpeg() -> str | None:
@@ -76,8 +81,8 @@ BLUR_THRESHOLD = 100.0            # Laplacian 變異數閾值（模糊偵測）
 SRGAN_SCALE = 4
 
 # ── 多模態融合 ──────────────────────────────────────
-ALPHA = 0.6                       # 語意權重（Grid Search 調校結果）
-BETA = 0.4                        # 視覺權重（α + β = 1）
+ALPHA = 0.6                       # 目前採用的實驗基準；三部訓練影片搜尋候選 0.5/0.5 尚未正式採用
+BETA = 0.4                        # 視覺權重（α + β = 1）；不代表已驗證的最佳值
 FUSION_SCORE_THRESHOLD = 0.2      # 保留片段的最低融合分數
 SLIDING_WINDOW_MIN_SEC = 10       # 語意感知滑動視窗最小保留秒數
 
@@ -122,7 +127,7 @@ CLIP_SCORE_THRESHOLD = 0.25
 CLIP_WEIGHT = 0.3                 # CLIP 分數在視覺分數中的混合權重
 
 # ── MLP 可學習融合模型 ──────────────────────────────
-MLP_FUSION_MODEL_PATH = "weights/mlp_fusion.pth"
+MLP_FUSION_MODEL_PATH = "weights/mlp_fusion_12d.pth"
 MLP_FUSION_EPOCHS = 100
 MLP_FUSION_LR = 0.001
-USE_MLP_FUSION = False            # 需先執行訓練才可啟用
+USE_MLP_FUSION = False            # 12 維模型仍屬小樣本實驗；獨立測試不足以支持正式啟用

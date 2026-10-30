@@ -33,7 +33,7 @@ from .srgan import is_blurry, enhance_roi
 
 
 class SRGANEnhancer:
-    """SRGAN 增強器封裝類別"""
+    """保留歷史類別名稱的 ROI 增強包裝；實際操作是 OpenCV bicubic resize。"""
     
     def __init__(self, blur_threshold: float = BLUR_THRESHOLD):
         self.blur_threshold = blur_threshold
@@ -114,10 +114,12 @@ def compute_visual_score(
 
 def _compute_iou_fallback(
     roi: np.ndarray,
-    hand_center: tuple[int, int],
+    hand_center: Optional[tuple[int, int]],
     text_boxes: list[tuple[int, int, int, int]]
 ) -> float:
     """計算手部座標與文字框的 IoU 作為降級備援分數"""
+    if hand_center is None:
+        return 0.0
     hx, hy = hand_center
     hand_box = (hx - 10, hy - 10, hx + 10, hy + 10)
     max_iou = 0.0
@@ -143,7 +145,7 @@ def _compute_iou_fallback(
 
 def compute_visual_score_v2(
     roi: np.ndarray,
-    hand_center: tuple[int, int],
+    hand_center: Optional[tuple[int, int]],
     asr_keywords: list[str],
     frame: np.ndarray,
     text_detector: Optional[TextDetector] = None,
@@ -152,7 +154,7 @@ def compute_visual_score_v2(
     blur_threshold: float = BLUR_THRESHOLD,
     sbert_threshold: float = SBERT_SIMILARITY_THRESHOLD
 ) -> VisualScoreResult:
-    """計算視覺分數（文字偵測優先 + SBERT + SRGAN 整合版本）。"""
+    """計算視覺分數（文字偵測優先、SBERT 比對與 bicubic ROI 增強）。"""
     if text_detector is None:
         text_detector = TextDetector()
     if sbert_calculator is None:

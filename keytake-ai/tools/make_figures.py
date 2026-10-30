@@ -145,9 +145,13 @@ def fig4_timeline(features_path: str, gt_path: str):
         range_end = max(s["end"] for s in features)
 
     scores = [fuse_scores(s.get("s_text", 0), s.get("s_visual", 0), ALPHA, BETA,
-                          visual_reliability=s.get("visual_reliability", 1.0))
+                          visual_reliability=s.get("visual_reliability", 0.0))
               for s in features]
-    selected = semantic_sliding_window(features, scores)
+    selected = semantic_sliding_window(
+        features,
+        scores,
+        original_duration=range_end,
+    )
     selected = [s for s in selected if s["start"] < range_end]
 
     vid = os.path.splitext(os.path.basename(features_path))[0].replace("features_", "")

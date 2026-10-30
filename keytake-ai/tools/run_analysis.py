@@ -63,10 +63,17 @@ def _eval_with_beta(features, gt, beta, range_end, eval_duration):
     alpha = 1.0 - beta
     scores = [
         fuse_scores(s.get("s_text", 0.0), s.get("s_visual", 0.0),
-                    alpha, beta, visual_reliability=s.get("visual_reliability", 1.0))
+                    alpha, beta, visual_reliability=s.get("visual_reliability", 0.0))
         for s in features
     ]
-    selected = _clip(semantic_sliding_window(features, scores), range_end)
+    selected = _clip(
+        semantic_sliding_window(
+            features,
+            scores,
+            original_duration=eval_duration,
+        ),
+        range_end,
+    )
     recall = compute_recall(selected, gt)
     precision = compute_precision(selected, gt)
     f1 = compute_f1_score(recall, precision)

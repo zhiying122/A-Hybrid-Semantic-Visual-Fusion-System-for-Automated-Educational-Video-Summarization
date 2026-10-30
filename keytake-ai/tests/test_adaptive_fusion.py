@@ -21,6 +21,8 @@ from src.fusion.adaptive_fusion import (
     fuse_scores,
     semantic_sliding_window,
     grid_search_weights,
+    grid_search_weights_by_video,
+    _evaluate_video,
     _compute_recall,
 )
 from config import FUSION_SCORE_THRESHOLD
@@ -62,6 +64,17 @@ def segment_strategy():
 # ────────────────────────────────────────────────────────────────────
 
 class TestFuseScoresProperties:
+
+    def test_missing_visual_reliability_uses_semantic_only(self):
+        assert fuse_scores(0.8, 0.1) == pytest.approx(0.8)
+
+    def test_non_finite_scores_are_rejected(self):
+        with pytest.raises(ValueError, match="有限數值"):
+            fuse_scores(float("nan"), 0.5)
+
+    def test_weights_must_sum_to_one(self):
+        with pytest.raises(ValueError, match="alpha \\+ beta = 1"):
+            fuse_scores(0.5, 0.5, alpha=0.4, beta=0.4)
 
     @settings(max_examples=100)
     @given(
@@ -156,6 +169,91 @@ class TestSlidingWindow:
                 for key in ("start", "end", "s_text", "s_visual", "text"):
                     assert key in seg, f"Missing key '{key}' in selected segment"
 
+    def test_score_length_must_match_segment_count(self):
+        with pytest.raises(ValueError, match="數量必須一致"):
+            semantic_sliding_window(
+                [{"start": 0.0, "end": 1.0}],
+                [],
+            )
+
+    def test_invalid_or_non_finite_segments_are_rejected(self):
+        with pytest.raises(ValueError, match="時間範圍無效"):
+            semantic_sliding_window(
+                [{"start": 2.0, "end": 1.0}],
+                [0.9],
+            )
+        with pytest.raises(ValueError, match="分數必須介於"):
+            semantic_sliding_window(
+                [{"start": 0.0, "end": 1.0}],
+                [float("nan")],
+            )
+
+    def test_results_are_sorted_and_capped_by_source_duration(self):
+        segments = [
+            {"start": 15.0, "end": 20.0, "text": "later"},
+            {"start": 0.0, "end": 5.0, "text": "earlier"},
+        ]
+        result = semantic_sliding_window(
+            segments,
+            [0.9, 0.8],
+            min_sec=1.0,
+            max_summary_ratio=0.2,
+            min_summary_sec=1.0,
+            original_duration=100.0,
+        )
+
+        assert result == sorted(result, key=lambda item: item["start"])
+        assert sum(item["end"] - item["start"] for item in result) <= 20.0
+        assert all(item["end"] - item["start"] <= 4.0 for item in result)
+
+    def test_low_score_gap_is_not_absorbed_to_reach_minimum_duration(self):
+        segments = [
+            {"start": 0.0, "end": 2.0, "text": "first"},
+            {"start": 2.0, "end": 10.0, "text": "low-score gap"},
+            {"start": 10.0, "end": 12.0, "text": "second"},
+        ]
+        result = semantic_sliding_window(
+            segments,
+            [0.9, 0.01, 0.8],
+            min_sec=10.0,
+            original_duration=12.0,
+        )
+
+        assert [(item["start"], item["end"]) for item in result] == [
+            (0.0, 2.0),
+            (10.0, 12.0),
+        ]
+
+    def test_score_per_second_priority_can_preserve_multiple_short_clips(self):
+        segments = [
+            {"start": 0.0, "end": 9.0, "text": "long"},
+            {"start": 9.0, "end": 10.0, "text": "low gap"},
+            {"start": 10.0, "end": 12.0, "text": "short one"},
+            {"start": 12.0, "end": 13.0, "text": "low gap"},
+            {"start": 13.0, "end": 15.0, "text": "short two"},
+        ]
+        scores = [0.9, 0.01, 0.8, 0.01, 0.7]
+        legacy = semantic_sliding_window(
+            segments,
+            scores,
+            min_sec=10.0,
+            max_summary_ratio=0.65,
+            original_duration=15.0,
+            budget_strategy="score",
+        )
+        density = semantic_sliding_window(
+            segments,
+            scores,
+            min_sec=10.0,
+            max_summary_ratio=0.65,
+            original_duration=15.0,
+            budget_strategy="score_per_second",
+        )
+
+        assert len(legacy) == 1
+        assert len(density) == 2
+        assert sum(item["end"] - item["start"] for item in density) <= 9.75
+
     @settings(max_examples=200, deadline=None)
     @given(
         n=st.integers(min_value=1, max_value=60),
@@ -200,6 +298,7 @@ class TestGridSearch:
         segs = [
             {"start": i * 30.0, "end": (i + 1) * 30.0,
              "s_text": np.random.uniform(0, 1), "s_visual": np.random.uniform(0, 1),
+             "visual_reliability": np.random.uniform(0, 1),
              "text": f"片段{i}"}
             for i in range(8)
         ]
@@ -211,10 +310,82 @@ class TestGridSearch:
         assert abs(alpha + beta - 1.0) < 1e-6, f"α+β should be 1.0, got {alpha+beta}"
 
     def test_empty_gt_returns_default(self):
-        segs = [{"start": 0, "end": 10, "s_text": 0.5, "s_visual": 0.5, "text": ""}]
+        segs = [{
+            "start": 0,
+            "end": 10,
+            "s_text": 0.5,
+            "s_visual": 0.5,
+            "visual_reliability": 0.5,
+            "text": "",
+        }]
         alpha, beta = grid_search_weights(segs, [])
         assert 0.0 <= alpha <= 1.0
         assert abs(alpha + beta - 1.0) < 1e-6
+
+    def test_group_search_keeps_each_video_timeline_isolated(self):
+        videos = [
+            {
+                "video_id": "text-positive",
+                "duration": 20.0,
+                "segments": [
+                    {
+                        "start": 0.0,
+                        "end": 10.0,
+                        "s_text": 1.0,
+                        "s_visual": 0.0,
+                        "visual_reliability": 1.0,
+                    },
+                    {
+                        "start": 10.0,
+                        "end": 20.0,
+                        "s_text": 0.0,
+                        "s_visual": 1.0,
+                        "visual_reliability": 1.0,
+                    },
+                ],
+                "ground_truth": [(0.0, 10.0)],
+            },
+            {
+                "video_id": "text-positive-later",
+                "duration": 20.0,
+                "segments": [
+                    {
+                        "start": 0.0,
+                        "end": 10.0,
+                        "s_text": 0.0,
+                        "s_visual": 1.0,
+                        "visual_reliability": 1.0,
+                    },
+                    {
+                        "start": 10.0,
+                        "end": 20.0,
+                        "s_text": 1.0,
+                        "s_visual": 0.0,
+                        "visual_reliability": 1.0,
+                    },
+                ],
+                "ground_truth": [(10.0, 20.0)],
+            },
+        ]
+
+        alpha, beta, metrics = grid_search_weights_by_video(videos, step=0.1)
+
+        assert alpha + beta == pytest.approx(1.0)
+        assert metrics["f1_score"] == pytest.approx(1.0)
+
+    def test_video_metrics_do_not_match_ground_truth_from_another_video(self):
+        metrics, selected = _evaluate_video(
+            segments=[{"start": 0.0, "end": 10.0}],
+            scores=[0.9],
+            ground_truth=[(10.0, 20.0)],
+            duration=20.0,
+        )
+
+        assert [(segment["start"], segment["end"]) for segment in selected] == [
+            (0.0, 10.0)
+        ]
+        assert metrics["recall"] == 0.0
+        assert metrics["precision"] == 0.0
 
 
 # ────────────────────────────────────────────────────────────────────

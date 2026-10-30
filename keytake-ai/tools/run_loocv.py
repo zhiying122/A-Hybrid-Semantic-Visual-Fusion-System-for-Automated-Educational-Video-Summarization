@@ -1,81 +1,87 @@
-"""
-Leave-One-Out Cross-Validation 執行腳本
+"""Leave-one-video-out evaluation for fusion-weight selection."""
 
-驗證融合參數在未見過課程上的泛化穩定性。
-
-用法：
-  cd keytake-ai
-  python tools/run_loocv.py --annotations data/annotations/ --output results/loocv.json
-"""
-
-import json
 import argparse
+import json
 import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.fusion.adaptive_fusion import leave_one_out_cv
+from src.fusion.evaluation_data import load_annotated_video
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Leave-One-Out 交叉驗證")
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Leave-One-Video-Out fusion-weight evaluation"
+    )
     parser.add_argument("--annotations", default="data/annotations")
+    parser.add_argument("--features-dir", default="results/features_12d")
     parser.add_argument("--output", default="results/loocv.json")
+    parser.add_argument(
+        "--fusion-mode",
+        choices=("adaptive", "static"),
+        default="adaptive",
+    )
+    parser.add_argument(
+        "--video",
+        action="append",
+        required=True,
+        help="LOOCV 影片 ID（不含 features_ 前綴；可重複指定）",
+    )
     args = parser.parse_args()
 
-    ann_dir = args.annotations
-    if not os.path.exists(ann_dir):
-        print(f"找不到標註資料夾：{ann_dir}")
-        sys.exit(1)
+    if not os.path.isdir(args.annotations):
+        parser.error(f"找不到標註資料夾：{args.annotations}")
+    if not os.path.isdir(args.features_dir):
+        parser.error(f"找不到特徵資料夾：{args.features_dir}")
+    if len(set(args.video)) != len(args.video):
+        parser.error("--video 不可重複指定")
 
-    # 優先掃描根目錄，若無資料則嘗試 example/ 子資料夾
-    seg_files = sorted(f for f in os.listdir(ann_dir) if f.startswith("segments_"))
-    if not seg_files:
-        example_dir = os.path.join(ann_dir, "example")
-        if os.path.exists(example_dir):
-            print(f"根目錄無資料，使用範例資料：{example_dir}")
-            ann_dir = example_dir
-            seg_files = sorted(f for f in os.listdir(ann_dir) if f.startswith("segments_"))
-    all_videos = []
-    for sf in seg_files:
-        vid_id = sf.replace("segments_", "").replace(".json", "")
-        gt_path = os.path.join(ann_dir, f"gt_{vid_id}.json")
-        if not os.path.exists(gt_path):
-            continue
-        with open(os.path.join(ann_dir, sf), encoding="utf-8") as f:
-            segments = json.load(f)
-        with open(gt_path, encoding="utf-8") as f:
-            gt_data = json.load(f)
-        all_videos.append({
-            "video_id": vid_id,
-            "segments": segments,
-            "ground_truth": [(g["start_sec"], g["end_sec"]) for g in gt_data["ground_truth"]]
-        })
+    videos = []
+    for video_id in args.video:
+        feature_path = os.path.join(
+            args.features_dir,
+            f"features_{video_id}.json",
+        )
+        gt_path = os.path.join(args.annotations, f"gt_{video_id}.json")
+        if not os.path.isfile(feature_path):
+            parser.error(f"找不到 LOOCV 特徵檔：{feature_path}")
+        if not os.path.isfile(gt_path):
+            parser.error(f"找不到 LOOCV Ground Truth：{gt_path}")
+        videos.append(load_annotated_video(feature_path, gt_path))
 
-    if len(all_videos) < 2:
-        print(f"LOOCV 至少需要 2 部影片，目前只有 {len(all_videos)} 部")
-        sys.exit(1)
+    if len(videos) < 2:
+        parser.error("LOOCV 至少需要 2 部特徵與標註配對影片")
 
-    print(f"開始 LOOCV，共 {len(all_videos)} 折...")
-    results = leave_one_out_cv(all_videos)
-
-    recalls = [r["recall"] for r in results]
-    avg_recall = sum(recalls) / len(recalls)
-
+    print(f"開始 LOOCV，共 {len(videos)} 折...")
+    results = leave_one_out_cv(videos, fusion_mode=args.fusion_mode)
+    metric_names = ("recall", "precision", "f1_score")
+    averages = {
+        metric: sum(result[metric] for result in results) / len(results)
+        for metric in metric_names
+    }
     summary = {
+        "fusion_mode": args.fusion_mode,
+        "video_ids": [video["video_id"] for video in videos],
         "folds": results,
-        "avg_recall": round(avg_recall, 4),
-        "min_recall": round(min(recalls), 4),
-        "max_recall": round(max(recalls), 4),
+        "macro_metrics": {
+            metric: round(value, 4) for metric, value in averages.items()
+        },
+        "avg_recall": round(averages["recall"], 4),
+        "min_recall": round(min(result["recall"] for result in results), 4),
+        "max_recall": round(max(result["recall"] for result in results), 4),
     }
 
     os.makedirs(os.path.dirname(args.output) or ".", exist_ok=True)
-    with open(args.output, "w", encoding="utf-8") as f:
-        json.dump(summary, f, indent=2)
+    with open(args.output, "w", encoding="utf-8") as file:
+        json.dump(summary, file, ensure_ascii=False, indent=2)
 
-    print(f"\nLOOCV 完成")
-    print(f"平均 Recall：{avg_recall:.4f}（min={min(recalls):.4f}, max={max(recalls):.4f}）")
+    print(
+        f"平均 Recall={averages['recall']:.4f}, "
+        f"Precision={averages['precision']:.4f}, "
+        f"F1={averages['f1_score']:.4f}"
+    )
     print(f"結果儲存至：{args.output}")
 
 

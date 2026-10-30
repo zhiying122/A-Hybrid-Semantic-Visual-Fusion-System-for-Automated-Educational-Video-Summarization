@@ -57,11 +57,23 @@ class StudyMaterialsGenerator:
 
     def __init__(self, llm_backend: Optional[str] = None):
         self.llm_backend = (llm_backend or os.getenv("LLM_BACKEND", "openai")).lower()
+        materials_mode = os.getenv("STUDY_MATERIALS_MODE")
+        if materials_mode is not None:
+            self.mode = materials_mode.strip().lower()
+            if self.mode not in {"llm", "rules"}:
+                raise ValueError("STUDY_MATERIALS_MODE 必須是 llm 或 rules")
+        else:
+            self.mode = os.getenv("SEMANTIC_SCORER_MODE", "sbert").strip().lower()
+            if self.mode not in {"llm", "sbert", "tfidf"}:
+                raise ValueError(
+                    "SEMANTIC_SCORER_MODE 必須是 llm、sbert 或 tfidf"
+                )
         self.use_llm = False
         self.llm_client = None
         self.llm_model = None
         self.ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434").rstrip("/")
-        self._init_llm()
+        if self.mode == "llm":
+            self._init_llm()
 
         mode = f"LLM 模式（{self.llm_backend}）" if self.use_llm else "規則式模式"
         print(f"[StudyMaterials] {mode}")
@@ -74,7 +86,10 @@ class StudyMaterialsGenerator:
                     return
                 from openai import OpenAI
 
-                self.llm_client = OpenAI(api_key=api_key)
+                self.llm_client = OpenAI(
+                    api_key=api_key,
+                    timeout=float(os.getenv("LLM_TIMEOUT_SEC", "60")),
+                )
                 self.llm_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
             elif self.llm_backend == "groq":
@@ -83,7 +98,10 @@ class StudyMaterialsGenerator:
                     return
                 from groq import Groq
 
-                self.llm_client = Groq(api_key=api_key)
+                self.llm_client = Groq(
+                    api_key=api_key,
+                    timeout=float(os.getenv("LLM_TIMEOUT_SEC", "60")),
+                )
                 self.llm_model = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 
             elif self.llm_backend == "ollama":

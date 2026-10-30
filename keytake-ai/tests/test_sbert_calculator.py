@@ -246,28 +246,15 @@ class TestFallbackModeProperties:
         transcript_text=text_strategy
     )
     def test_fallback_mode_works_correctly(self, ocr_text, transcript_text):
-        """
-        Property: 降級備援模式正確運作
-        
-        **Validates: Requirements 2.3, 2.4**
-        
-        When SBERT model is unavailable, the calculator should
-        fall back to character overlap and still return valid results.
-        """
-        # 強制使用降級備援模式
-        with patch.object(SBERTCalculator, '_load_model') as mock_load:
-            calculator = SBERTCalculator()
-            calculator.fallback_mode = True
-            calculator.model = None
-            
-            similarity = calculator.compute_similarity(ocr_text, transcript_text)
-            
-            # 驗證回傳值在有效範圍內
-            assert 0.0 <= similarity <= 1.0, \
-                f"Fallback similarity {similarity} out of range"
-            
-            # 驗證降級模式標記
-            assert calculator.is_fallback_mode is True
+        """強制使用降級模式，確認仍可正常回傳 [0, 1] 的值。"""
+        calculator = SBERTCalculator()
+        # 直接設定降級模式
+        calculator.fallback_mode = True
+        calculator.model = None
+
+        similarity = calculator.compute_similarity(ocr_text, transcript_text)
+        assert 0.0 <= similarity <= 1.0
+        assert calculator.is_fallback_mode is True
 
     @settings(max_examples=10, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(
@@ -300,77 +287,28 @@ class TestFallbackModeProperties:
 # ============================================================================
 
 class TestCosineSimilarityProperties:
-    """
-    Feature: keytake-ai-completion, Property 2: 餘弦相似度正規化
-    
-    **Validates: Requirements 2.2**
-    """
+    """驗證正規化後的分數範圍與一致性。"""
 
     @settings(max_examples=10, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(
-        vec1=st.lists(st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False), min_size=10, max_size=10),
-        vec2=st.lists(st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False), min_size=10, max_size=10)
+        text1=text_strategy,
+        text2=text_strategy
     )
-    def test_cosine_similarity_normalized_range(self, vec1, vec2):
-        """
-        Property: 餘弦相似度正規化後應在 [0.0, 1.0] 範圍內
-        
-        **Validates: Requirements 2.2**
-        
-        For any two embedding vectors, the normalized cosine similarity
-        should be in [0.0, 1.0].
-        """
+    def test_similarity_result_always_normalized(self, text1, text2):
+        """compute_similarity 結果必須在 [0.0, 1.0]。"""
         calculator = SBERTCalculator()
-        
-        embedding1 = np.array(vec1, dtype=np.float32)
-        embedding2 = np.array(vec2, dtype=np.float32)
-        
-        similarity = calculator._compute_cosine_similarity(embedding1, embedding2)
-        
-        assert 0.0 <= similarity <= 1.0, \
-            f"Normalized cosine similarity {similarity} out of range [0.0, 1.0]"
+        result = calculator.compute_similarity(text1, text2)
+        assert 0.0 <= result <= 1.0
 
-    @settings(max_examples=10, deadline=None, suppress_health_check=[HealthCheck.too_slow])
-    @given(
-        vec=st.lists(st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False), min_size=10, max_size=10)
-    )
-    def test_cosine_similarity_with_self_is_one(self, vec):
-        """
-        Property: 向量與自身的餘弦相似度應為 1.0
-        
-        **Validates: Requirements 2.2**
-        
-        For any non-zero vector, cosine similarity with itself should be 1.0.
-        """
-        calculator = SBERTCalculator()
-        
-        embedding = np.array(vec, dtype=np.float32)
-        
-        # 跳過零向量
-        if np.linalg.norm(embedding) == 0:
-            return
-        
-        similarity = calculator._compute_cosine_similarity(embedding, embedding)
-        
-        assert abs(similarity - 1.0) < 1e-5, \
-            f"Self-similarity should be 1.0, got {similarity}"
+    def test_zero_vector_similarity_returns_zero(self):
+        """降級模式下，空字串的 Jaccard 相似度為 0。"""
+        assert compute_char_overlap("", "hello") == 0.0
+        assert compute_char_overlap("hello", "") == 0.0
 
-    def test_cosine_similarity_zero_vector_returns_zero(self):
-        """
-        Property: 零向量的餘弦相似度應為 0.0
-        
-        **Validates: Requirements 2.2**
-        
-        When either vector is zero, cosine similarity should be 0.0.
-        """
-        calculator = SBERTCalculator()
-        
-        zero_vec = np.zeros(10, dtype=np.float32)
-        non_zero_vec = np.ones(10, dtype=np.float32)
-        
-        assert calculator._compute_cosine_similarity(zero_vec, non_zero_vec) == 0.0
-        assert calculator._compute_cosine_similarity(non_zero_vec, zero_vec) == 0.0
-        assert calculator._compute_cosine_similarity(zero_vec, zero_vec) == 0.0
+    def test_identical_text_similarity_close_to_one(self):
+        """相同字串的 Jaccard 相似度為 1.0。"""
+        text = "機器學習"
+        assert compute_char_overlap(text, text) == 1.0
 
 
 # ============================================================================

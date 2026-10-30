@@ -36,6 +36,7 @@ def signals_strategy(hand_detected: bool = True):
         text_density=st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False),
         hand_board_proximity=st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False),
         hand_detected=st.just(hand_detected),
+        visual_available=st.just(hand_detected),
     )
 
 
@@ -56,13 +57,11 @@ class TestReliabilityRange:
 
     @settings(max_examples=20, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(signals=signals_strategy(hand_detected=False))
-    def test_no_hand_gives_min_reliability(self, signals):
-        min_r = 0.05
-        est = VisualReliabilityEstimator(min_reliability=min_r)
+    def test_no_hand_gives_zero_reliability(self, signals):
+        est = VisualReliabilityEstimator(min_reliability=0.05)
         result = est.estimate(signals, base_beta=0.5)
-        # 無手部偵測時，可靠度應為最低值（EMA 可能比 min_r 略高，取決於歷史）
-        assert result.reliability >= min_r, \
-            f"Reliability {result.reliability} should be >= min_reliability {min_r}"
+        assert result.reliability == 0.0
+        assert result.effective_beta == 0.0
 
     @settings(max_examples=20, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     @given(base_beta=st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False))
@@ -108,6 +107,17 @@ class TestDominantFactor:
         result = est.estimate(signals)
         assert result.dominant_factor == "no_hand_detected"
 
+    def test_text_visual_reliability_does_not_require_hand_detection(self):
+        result = VisualReliabilityEstimator(ema_alpha=1.0).estimate(
+            ReliabilitySignals(
+                text_density=0.8,
+                hand_detected=False,
+                visual_available=True,
+            )
+        )
+        assert result.reliability == pytest.approx(0.8)
+        assert result.effective_beta > 0.0
+
     def test_high_variance_reduces_reliability(self):
         est_low = VisualReliabilityEstimator(ema_alpha=1.0)
         est_high = VisualReliabilityEstimator(ema_alpha=1.0)
@@ -132,7 +142,7 @@ class TestDominantFactor:
 class TestEMA:
     """EMA 平滑行為"""
 
-    def test_ema_smooths_sudden_drop(self):
+    def test_missing_observation_does_not_reuse_previous_reliability(self):
         est = VisualReliabilityEstimator(ema_alpha=0.3)
 
         # 先建立穩定高可靠度狀態
@@ -148,9 +158,8 @@ class TestEMA:
         bad = ReliabilitySignals(hand_detected=False)
         r_after = est.estimate(bad).reliability
 
-        # EMA 應讓跌幅有限（不會立即跌到最低）
-        assert r_after > 0.05, "EMA should smooth sudden drops"
-        assert r_after < r_before, "Reliability should decrease after bad frame"
+        assert r_after == 0.0
+        assert est._ema_reliability is None
 
     def test_reset_clears_ema(self):
         est = VisualReliabilityEstimator(ema_alpha=0.5)
@@ -176,6 +185,15 @@ class TestSubScorers:
     def test_hand_stability_zero_variance(self):
         score = VisualReliabilityEstimator._hand_stability_score(0.0)
         assert score == 1.0, "Zero variance should give stability score 1.0"
+
+    def test_missing_variance_is_not_perfect_stability(self):
+        assert VisualReliabilityEstimator._hand_stability_score(None) == 0.0
+
+    def test_invalid_smoothing_parameters_are_rejected(self):
+        with pytest.raises(ValueError, match="ema_alpha"):
+            VisualReliabilityEstimator(ema_alpha=1.5)
+        with pytest.raises(ValueError, match="min_reliability"):
+            VisualReliabilityEstimator(min_reliability=-0.1)
 
     def test_hand_stability_very_high_variance(self):
         score = VisualReliabilityEstimator._hand_stability_score(1e6)
@@ -233,9 +251,64 @@ class TestBuildSignals:
             tracker_result, text_boxes=text_boxes, frame_w=640, frame_h=480
         )
         assert signals.hand_detected is True
-        assert signals.hand_confidence == 0.9
+        assert signals.hand_confidence is None
+        assert signals.hand_variance is None
+        assert signals.visual_available is True
         assert signals.text_density > 0.0
         assert signals.hand_board_proximity > 0.0
+
+    def test_intent_score_is_not_used_as_hand_confidence(self):
+        signals = build_signals_from_tracker_result(
+            {
+                "triggered": True,
+                "hand_detected": True,
+                "hand_center": (300, 200),
+                "roi_center": (300, 200),
+                "s_visual_raw": 0.99,
+            },
+            text_boxes=[(200, 150, 400, 250)],
+        )
+        assert signals.hand_confidence is None
+        assert signals.hand_variance is None
+
+    def test_non_triggered_frame_has_no_reusable_visual_score(self):
+        signals = build_signals_from_tracker_result(
+            {"triggered": False, "hand_detected": False}
+        )
+        result = VisualReliabilityEstimator().estimate(signals)
+        assert result.reliability == 0.0
+        assert result.effective_beta == 0.0
+
+    def test_text_only_frame_is_available_when_scoring_succeeded(self):
+        signals = build_signals_from_tracker_result(
+            {
+                "triggered": False,
+                "hand_detected": False,
+                "visual_available": True,
+            },
+            text_boxes=[(100, 100, 300, 180)],
+            frame_w=640,
+            frame_h=480,
+        )
+        result = VisualReliabilityEstimator(ema_alpha=1.0).estimate(signals)
+        assert result.reliability > 0.0
+        assert result.effective_beta > 0.0
+
+    def test_overlapping_text_boxes_do_not_double_count_density(self):
+        one_box = VisualReliabilityEstimator._text_density_score(
+            [(0, 0, 100, 100)],
+            frame_area=100_000,
+        )
+        overlapping_boxes = VisualReliabilityEstimator._text_density_score(
+            [(0, 0, 100, 100), (25, 0, 125, 100)],
+            frame_area=100_000,
+        )
+        union_box = VisualReliabilityEstimator._text_density_score(
+            [(0, 0, 125, 100)],
+            frame_area=100_000,
+        )
+        assert overlapping_boxes > one_box
+        assert overlapping_boxes == pytest.approx(union_box)
 
     def test_not_triggered_no_hand(self):
         tracker_result = {

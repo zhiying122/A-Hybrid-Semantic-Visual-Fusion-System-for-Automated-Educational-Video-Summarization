@@ -66,7 +66,7 @@ def test_semantic_scorer():
     """測試語意評分模組"""
     print("\n[Test] SemanticScorer...")
     from data.prompt_corpus.corpus import PROMPT_CORPUS
-    from src.semantic.scorer import SemanticScorer
+    from src.semantic.semantic_scorer_optimized import SemanticScorer
 
     scorer = SemanticScorer(PROMPT_CORPUS)
     segments = make_fake_segments(5)
@@ -89,6 +89,7 @@ def test_hand_tracker():
     assert "triggered" in result
     assert "s_visual_raw" in result
     assert 0.0 <= result["s_visual_raw"] <= 1.0
+    tracker.close()
     print(f"  ✓ 手部追蹤回傳格式正常，triggered={result['triggered']}")
 
 
@@ -119,7 +120,12 @@ def test_adaptive_fusion():
         seg["visual_reliability"] = np.random.uniform(0.1, 1.0)
 
     # 靜態加權（R=1.0）
-    static_scores = [fuse_scores(s["s_text"], s["s_visual"]) for s in segments]
+    static_scores = [
+        fuse_scores(
+            s["s_text"], s["s_visual"], visual_reliability=1.0
+        )
+        for s in segments
+    ]
     # 自適應加權
     adaptive_scores = [
         fuse_scores(s["s_text"], s["s_visual"], visual_reliability=s["visual_reliability"])
@@ -135,7 +141,7 @@ def test_adaptive_fusion():
         s["s_text"] = 0.7
         s["s_visual"] = 0.5
     s1 = fuse_scores(0.7, 0.5, 0.5, 0.5, visual_reliability=1.0)
-    s2 = fuse_scores(0.7, 0.5, 0.5, 0.5)
+    s2 = fuse_scores(0.7, 0.5, 0.5, 0.5, visual_reliability=1.0)
     assert abs(s1 - s2) < 1e-6, "R=1.0 時自適應應等同靜態加權"
 
     selected = semantic_sliding_window(segments, adaptive_scores)
@@ -191,6 +197,7 @@ def test_grid_search():
     for seg in segments:
         seg["s_text"] = np.random.uniform(0, 1)
         seg["s_visual"] = np.random.uniform(0, 1)
+        seg["visual_reliability"] = np.random.uniform(0.1, 1.0)
 
     gt = make_fake_ground_truth(segments)
     alpha, beta = grid_search_weights(segments, gt)
@@ -226,7 +233,7 @@ def test_video_exporter_index():
     print("\n[Test] VideoExporter index...")
     import json
     import tempfile
-    from src.output.video_exporter import export_index
+    from src.output.video_exporter_optimized import export_index
 
     segments = make_fake_segments(5)
     for seg in segments:

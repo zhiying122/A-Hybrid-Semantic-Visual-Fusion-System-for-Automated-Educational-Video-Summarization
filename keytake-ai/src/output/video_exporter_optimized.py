@@ -50,13 +50,17 @@ def _normalize_segments(
             "end": min(end, duration),
             "clip_start": padded_start,
             "clip_end": padded_end,
-            "source": segment,
+            "source_ranges": [{
+                "source_start": start,
+                "source_end": min(end, duration),
+            }],
         })
 
     normalized = [item for item in normalized if item["end"] > item["start"]]
     if not normalized:
         raise ValueError("沒有可輸出的有效片段")
 
+    # 依原片時間排序輸出，並合併 padding 後相交的範圍，避免重複剪入同一畫面。
     normalized.sort(key=lambda item: (item["clip_start"], item["clip_end"]))
 
     # Merge overlapping padded ranges to avoid repeating the same footage.
@@ -64,15 +68,17 @@ def _normalize_segments(
     for item in normalized:
         if merged and item["clip_start"] <= merged[-1]["clip_end"]:
             merged[-1]["clip_end"] = max(merged[-1]["clip_end"], item["clip_end"])
+            merged[-1]["source_ranges"].extend(item["source_ranges"])
         else:
             merged.append({
                 "clip_start": item["clip_start"],
                 "clip_end": item["clip_end"],
+                "source_ranges": list(item["source_ranges"]),
             })
     return merged
 
 
-def _probe_duration(source_video: str) -> float:
+def probe_video_duration(source_video: str) -> float:
     if not os.path.isfile(source_video):
         raise FileNotFoundError(f"找不到來源影片：{source_video}")
 
@@ -92,8 +98,9 @@ def export_summary_video(
     segments: list[dict],
     output_path: str,
     padding_sec: float = 0.3,
+    timeline_output_path: str | None = None,
 ) -> str:
-    """Cut selected ranges, concatenate them, and return the output path."""
+    """Export selected ranges; optionally write source/output timeline mappings."""
     if not segments:
         raise ValueError("沒有選取任何片段")
     if not output_path:
@@ -103,14 +110,22 @@ def export_summary_video(
     destination = Path(output_path).expanduser().resolve()
     if source == destination:
         raise ValueError("輸出路徑不可與來源影片相同")
+    timeline_destination = (
+        Path(timeline_output_path).expanduser().resolve()
+        if timeline_output_path
+        else None
+    )
+    if timeline_destination in {source, destination}:
+        raise ValueError("時間對照檔不可覆寫來源或摘要影片")
 
-    duration = _probe_duration(str(source))
+    duration = probe_video_duration(str(source))
     clips = _normalize_segments(segments, duration, padding_sec)
     destination.parent.mkdir(parents=True, exist_ok=True)
 
     with tempfile.TemporaryDirectory(prefix="summary_export_") as temp_dir:
         temp_path = Path(temp_dir)
         clip_paths = []
+        clip_durations = []
 
         for index, clip in enumerate(clips):
             clip_path = temp_path / f"clip_{index:04d}.mp4"
@@ -141,6 +156,7 @@ def export_summary_video(
             if not clip_path.exists() or clip_path.stat().st_size == 0:
                 raise RuntimeError(f"FFmpeg 未產生有效片段：{clip_path.name}")
             clip_paths.append(clip_path)
+            clip_durations.append(probe_video_duration(str(clip_path)))
 
         concat_file = temp_path / "concat.txt"
         with concat_file.open("w", encoding="utf-8", newline="\n") as file:
@@ -160,10 +176,58 @@ def export_summary_video(
             detail = exc.stderr.decode("utf-8", errors="replace") if exc.stderr else str(exc)
             raise RuntimeError(f"串接摘要影片失敗：{detail[-1500:]}") from exc
 
-    summary_duration = sum(clip["clip_end"] - clip["clip_start"] for clip in clips)
+    summary_duration = probe_video_duration(str(destination))
+    if timeline_destination:
+        timeline = _build_timeline_mapping(
+            clips,
+            clip_durations,
+            summary_duration,
+        )
+        timeline_destination.parent.mkdir(parents=True, exist_ok=True)
+        timeline_destination.write_text(
+            json.dumps(timeline, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
     print(f"[Exporter] 摘要影片已輸出：{destination}")
-    print(f"[Exporter] 片段數：{len(clips)}，預估摘要時長：{summary_duration:.1f}s")
+    print(f"[Exporter] 片段數：{len(clips)}，實際摘要時長：{summary_duration:.1f}s")
     return str(destination)
+
+
+def _build_timeline_mapping(
+    clips: list[dict],
+    clip_durations: list[float],
+    summary_duration: float,
+) -> list[dict]:
+    """Map original source intervals to their approximate output-video offsets."""
+    encoded_duration = sum(clip_durations)
+    if encoded_duration <= 0 or summary_duration <= 0:
+        raise ValueError("摘要影片時長必須大於 0")
+    # 以實際探測到的編碼長度校正串接時間軸，處理編碼器時間基準造成的小幅誤差。
+    concat_scale = summary_duration / encoded_duration
+
+    mappings = []
+    clip_output_start = 0.0
+    for clip, clip_duration in zip(clips, clip_durations):
+        source_duration = clip["clip_end"] - clip["clip_start"]
+        if source_duration <= 0:
+            raise ValueError("輸出片段的來源時長必須大於 0")
+        clip_scale = clip_duration / source_duration
+
+        for source_range in clip["source_ranges"]:
+            output_start = clip_output_start + (
+                source_range["source_start"] - clip["clip_start"]
+            ) * clip_scale
+            output_end = clip_output_start + (
+                source_range["source_end"] - clip["clip_start"]
+            ) * clip_scale
+            mappings.append({
+                **source_range,
+                "output_start": round(output_start * concat_scale, 3),
+                "output_end": round(output_end * concat_scale, 3),
+            })
+        clip_output_start += clip_duration
+
+    return mappings
 
 
 def _safe_score(value: Any) -> float:

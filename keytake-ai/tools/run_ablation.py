@@ -32,6 +32,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.fusion.adaptive_fusion import fuse_scores, semantic_sliding_window
+from src.fusion.evaluation_data import normalize_evaluation_data
 from src.fusion.evaluator import (
     compute_recall, compute_precision, compute_f1_score,
     compute_false_alarm_rate,
@@ -42,7 +43,9 @@ from config import ALPHA, BETA
 def _load_gt(gt_path: str):
     with open(gt_path, encoding="utf-8") as f:
         raw = json.load(f)
-    gt_list = raw.get("ground_truth", raw if isinstance(raw, list) else [])
+    gt_list = raw.get("ground_truth", []) if isinstance(raw, dict) else raw
+    if not isinstance(gt_list, list):
+        raise ValueError(f"Ground Truth 必須是區間清單：{gt_path}")
     gt = []
     for g in gt_list:
         if isinstance(g, dict):
@@ -80,15 +83,27 @@ def _score_segments(features: list[dict], mode: str) -> list[float]:
     if mode == "adaptive":
         return [
             fuse_scores(s.get("s_text", 0.0), s.get("s_visual", 0.0),
-                        ALPHA, BETA, visual_reliability=s.get("visual_reliability", 1.0))
+                        ALPHA, BETA, visual_reliability=s.get("visual_reliability", 0.0))
             for s in features
         ]
     raise ValueError(f"未知模式：{mode}")
 
 
-def _evaluate(features, gt, mode, range_end, eval_duration):
+def _evaluate(
+    features,
+    gt,
+    mode,
+    range_end,
+    eval_duration,
+    budget_strategy="score",
+):
     scores = _score_segments(features, mode)
-    selected = semantic_sliding_window(features, scores)
+    selected = semantic_sliding_window(
+        features,
+        scores,
+        original_duration=eval_duration,
+        budget_strategy=budget_strategy,
+    )
     selected = _clip_to_range(selected, range_end)
 
     recall = compute_recall(selected, gt)
@@ -146,6 +161,11 @@ def main():
     parser.add_argument("--output", default="results/ablation.json")
     parser.add_argument("--range-end", type=float, default=None,
                         help="評估範圍結束秒數（預設讀 GT 的 eval_range_sec）")
+    parser.add_argument(
+        "--budget-strategy",
+        choices=("score", "score_per_second"),
+        default="score",
+    )
     parser.add_argument("--save-features", default=None,
                         help="抽特徵後另存路徑（預設 results/features_<vid>.json）")
     args = parser.parse_args()
@@ -170,13 +190,28 @@ def main():
         print(f"特徵已存至：{feat_path}（下次可用 --features 直接重算）")
 
     # 評估範圍
-    range_end = args.range_end
-    if range_end is None and "eval_range_sec" in meta:
-        range_end = float(meta["eval_range_sec"][1])
-    eval_duration = range_end if range_end is not None else max(s["end"] for s in features)
+    eval_range = (
+        (0.0, args.range_end)
+        if args.range_end is not None
+        else meta.get("eval_range_sec")
+    )
+    features, gt, eval_duration = normalize_evaluation_data(
+        features,
+        gt,
+        eval_range,
+    )
+    range_end = eval_duration
 
     # 三模式評估
-    results = {mode: _evaluate(features, gt, mode, range_end, eval_duration)
+    results = {
+        mode: _evaluate(
+            features,
+            gt,
+            mode,
+            range_end,
+            eval_duration,
+            budget_strategy=args.budget_strategy,
+        )
                for mode in ("semantic", "static", "adaptive")}
 
     report = {
@@ -188,6 +223,7 @@ def main():
         "eval_range_sec": [0.0, round(eval_duration, 2)],
         "ground_truth_count": len(gt),
         "fusion_params": {"alpha": ALPHA, "beta": BETA},
+        "budget_strategy": args.budget_strategy,
         "results": results,
     }
 

@@ -12,6 +12,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+import config  # Load project .env settings before reading the Redis URL.
+
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 UPLOAD_DIR = Path(
     os.getenv("KEYTAKE_UPLOAD_DIR", str(PROJECT_ROOT / "tmp" / "uploads"))
@@ -36,6 +38,12 @@ celery_app.conf.update(
     task_soft_time_limit=1800,
     task_time_limit=2100,
     result_expires=86400,
+    broker_connection_timeout=2,
+    redis_socket_connect_timeout=1,
+    redis_socket_timeout=2,
+    result_backend_max_retries=3,
+    result_backend_base_sleep_between_retries_ms=100,
+    result_backend_max_sleep_between_retries_ms=500,
 )
 
 
@@ -52,7 +60,11 @@ def _is_inside(path: Path, directory: Path) -> bool:
 def process_video_task(self, task_id: str, video_path: str) -> dict[str, Any]:
     """執行影片摘要流程並回傳摘要索引與統計資料。"""
     from main import run_pipeline
-    from src.output.video_exporter_optimized import export_index, export_summary_video
+    from src.output.video_exporter_optimized import (
+        export_index,
+        export_summary_video,
+        probe_video_duration,
+    )
 
     source_path = Path(video_path).resolve()
     output_dir = OUTPUT_DIR / task_id
@@ -73,8 +85,18 @@ def process_video_task(self, task_id: str, video_path: str) -> dict[str, Any]:
 
         segments = result.get("segments", [])
         summary_path = output_dir / "summary.mp4"
+        timeline_path = output_dir / "timeline.json"
+        timeline = []
+        summary_duration = result.get("summary_duration")
         if segments:
-            export_summary_video(str(source_path), segments, str(summary_path))
+            export_summary_video(
+                str(source_path),
+                segments,
+                str(summary_path),
+                timeline_output_path=str(timeline_path),
+            )
+            timeline = json.loads(timeline_path.read_text(encoding="utf-8"))
+            summary_duration = probe_video_duration(str(summary_path))
 
         index_path = output_dir / "index.json"
         export_index(
@@ -96,10 +118,17 @@ def process_video_task(self, task_id: str, video_path: str) -> dict[str, Any]:
             "status": "completed",
             "progress": 100,
             "step": "完成",
-            "segments": index_data,
+            "segments": index_data.get("segments", []),
+            "course_summary": index_data.get("course_summary", {}),
             "original_duration": result.get("original_duration"),
-            "summary_duration": result.get("summary_duration"),
-            "time_saving_rate": result.get("time_saving_rate"),
+            "summary_duration": summary_duration,
+            "time_saving_rate": (
+                1.0 - summary_duration / result["original_duration"]
+                if summary_duration
+                and result.get("original_duration", 0) > 0
+                else result.get("time_saving_rate")
+            ),
+            "timeline": timeline,
             "summary_video": str(summary_path) if summary_path.exists() else None,
         }
     finally:

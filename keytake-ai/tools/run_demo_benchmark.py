@@ -172,7 +172,7 @@ def _evaluate_one(
       multimodal → 靜態加權（v1）
       adaptive   → 自適應置信度加權（v2）
     """
-    total_dur = segs[-1]["end"]
+    total_dur = max((segment["end"] for segment in segs), default=0.0)
     
     if mode == "unimodal":
         scores = [seg["s_text"] for seg in segs]
@@ -183,12 +183,16 @@ def _evaluate_one(
                 seg["s_visual"],
                 alpha=alpha,
                 beta=beta,
-                visual_reliability=seg.get("visual_reliability", 1.0),
+                visual_reliability=seg.get("visual_reliability", 0.0),
             )
             for seg in segs
         ]
     
-    selected = semantic_sliding_window(segs, scores)
+    selected = semantic_sliding_window(
+        segs,
+        scores,
+        original_duration=total_dur,
+    )
     
     recall = compute_recall(selected, gt)
     precision = compute_precision(selected, gt)

@@ -32,9 +32,10 @@ models/
 *.bin
 *.safetensors
 
-# 例外：手勢分類器訓練好的模型（小檔案，可以一起版控）
+# 例外：已納入專案的手勢分類器權重
 !keytake-ai/weights/gesture_classifier.pth
-!keytake-ai/weights/mlp_fusion.pth
+# MLP checkpoint 由實驗訓練產生，保留本機但不隨程式碼提交
+keytake-ai/weights/mlp_fusion*.pth
 
 # 例外：MediaPipe 手部追蹤模型（約 12MB，允許離線使用）
 !keytake-ai/models/
@@ -56,6 +57,8 @@ keytake-ai/data/annotations/annotator_*.json
 keytake-ai/output/
 keytake-ai/results/eval_run/
 keytake-ai/results/eval_*_real.json
+# 多模態特徵快取含逐字稿與影片分析資料，保留於本機
+keytake-ai/results/features_*/
 
 # 暫存上傳與輸出影片
 tmp/

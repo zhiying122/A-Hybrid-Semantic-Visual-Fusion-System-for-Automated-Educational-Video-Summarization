@@ -31,6 +31,7 @@ import numpy as np
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.fusion.adaptive_fusion import fuse_scores, semantic_sliding_window
+from src.fusion.evaluation_data import normalize_evaluation_data
 from src.fusion.evaluator import (
     compute_recall, compute_precision, compute_f1_score,
     compute_false_alarm_rate,
@@ -45,7 +46,9 @@ METRICS = ("recall", "precision", "f1_score", "false_alarm_rate", "time_saving_r
 def _load_gt(gt_path):
     with open(gt_path, encoding="utf-8") as f:
         raw = json.load(f)
-    gt_list = raw.get("ground_truth", raw if isinstance(raw, list) else [])
+    gt_list = raw.get("ground_truth", []) if isinstance(raw, dict) else raw
+    if not isinstance(gt_list, list):
+        raise ValueError(f"Ground Truth 必須是區間清單：{gt_path}")
     gt = []
     for g in gt_list:
         if isinstance(g, dict):
@@ -70,14 +73,51 @@ def _clip_to_range(segments, range_end):
 def _score(features, mode):
     if mode == "semantic":
         return [float(s.get("s_text", 0.0)) for s in features]
-    rel = (lambda s: 1.0) if mode == "static" else (lambda s: s.get("visual_reliability", 1.0))
-    return [fuse_scores(s.get("s_text", 0.0), s.get("s_visual", 0.0),
-                        ALPHA, BETA, visual_reliability=rel(s)) for s in features]
+    if mode == "static":
+        reliability = 1.0
+    elif mode == "adaptive":
+        return [
+            fuse_scores(
+                segment.get("s_text", 0.0),
+                segment.get("s_visual", 0.0),
+                ALPHA,
+                BETA,
+                visual_reliability=segment.get("visual_reliability", 0.0),
+            )
+            for segment in features
+        ]
+    else:
+        raise ValueError(f"未知模式：{mode}")
+    return [
+        fuse_scores(
+            segment.get("s_text", 0.0),
+            segment.get("s_visual", 0.0),
+            ALPHA,
+            BETA,
+            visual_reliability=reliability,
+        )
+        for segment in features
+    ]
 
 
-def _evaluate(features, gt, mode, range_end, eval_duration):
+def _evaluate(
+    features,
+    gt,
+    mode,
+    range_end,
+    eval_duration,
+    budget_strategy="score",
+):
     scores = _score(features, mode)
-    selected = _clip_to_range(semantic_sliding_window(features, scores), range_end)
+    selected = _clip_to_range(
+        semantic_sliding_window(
+            features,
+            scores,
+            original_duration=eval_duration,
+            budget_strategy=budget_strategy,
+        ),
+        range_end,
+    )
     recall = compute_recall(selected, gt)
     precision = compute_precision(selected, gt)
     f1 = compute_f1_score(recall, precision)
@@ -147,8 +187,18 @@ def main():
     parser.add_argument("--videos", default="data/videos")
     parser.add_argument("--annotations", default="data/annotations")
     parser.add_argument("--output", default="results/ablation_batch.json")
-    parser.add_argument("--feature-dir", default="results",
+    parser.add_argument("--feature-dir", default="results/features_12d",
                         help="特徵快取存放/讀取目錄")
+    parser.add_argument(
+        "--budget-strategy",
+        choices=("score", "score_per_second"),
+        default="score",
+    )
+    parser.add_argument(
+        "--video",
+        action="append",
+        help="只評估指定影片 ID（不含副檔名；可重複指定）",
+    )
     parser.add_argument("--use-cached-features", action="store_true",
                         help="只使用既有特徵快取，不重抽（找不到就跳過該片）")
     args = parser.parse_args()
@@ -156,11 +206,24 @@ def main():
     if not os.path.isdir(args.videos):
         print(f"找不到影片資料夾：{args.videos}")
         sys.exit(1)
+    if args.video and len(set(args.video)) != len(args.video):
+        parser.error("--video 不可重複指定")
 
     video_files = sorted(
         f for f in os.listdir(args.videos)
         if f.lower().endswith((".mp4", ".avi", ".mov", ".mkv"))
     )
+    if args.video:
+        requested = set(args.video)
+        available = {os.path.splitext(filename)[0] for filename in video_files}
+        missing = requested - available
+        if missing:
+            parser.error(f"找不到指定影片：{', '.join(sorted(missing))}")
+        video_files = [
+            filename
+            for filename in video_files
+            if os.path.splitext(filename)[0] in requested
+        ]
     if not video_files:
         print(f"資料夾內沒有影片：{args.videos}")
         sys.exit(1)
@@ -181,11 +244,22 @@ def main():
         if features is None:
             continue
 
-        range_end = float(meta["eval_range_sec"][1]) if "eval_range_sec" in meta else None
-        eval_duration = range_end if range_end is not None else max(s["end"] for s in features)
+        features, gt, eval_duration = normalize_evaluation_data(
+            features,
+            gt,
+            meta.get("eval_range_sec"),
+        )
+        range_end = eval_duration
 
         results = {m: {k: round(v, 4) for k, v in
-                       _evaluate(features, gt, m, range_end, eval_duration).items()}
+                       _evaluate(
+                           features,
+                           gt,
+                           m,
+                           range_end,
+                           eval_duration,
+                           budget_strategy=args.budget_strategy,
+                       ).items()}
                    for m in MODES}
         per_video.append({
             "video": vid_id,
@@ -216,6 +290,7 @@ def main():
 
     report = {
         "generated_at": datetime.now().isoformat(),
+        "budget_strategy": args.budget_strategy,
         "data_type": "REAL (真實影片 + 人工標註)",
         "n_videos": len(per_video),
         "fusion_params": {"alpha": ALPHA, "beta": BETA},

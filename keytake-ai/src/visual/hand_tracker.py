@@ -64,8 +64,26 @@ class HandTracker:
             maxlen=window_size
         )
         self._detector = None
+        self._closed = False
         self.gesture_classifier = GestureClassifier()
         self._init_detector()
+
+    def close(self) -> None:
+        """Release the active MediaPipe detector; safe to call more than once."""
+        if self._closed:
+            return
+        self._closed = True
+        if self._api_mode == "tasks" and self._detector is not None:
+            self._detector.close()
+            self._detector = None
+        elif self._api_mode == "legacy" and hasattr(self, "_hands_legacy"):
+            self._hands_legacy.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
 
     def _init_detector(self) -> None:
         if _USE_TASKS_API:
@@ -166,13 +184,17 @@ class HandTracker:
         idle = _make_result(GestureIntent.IDLE, 0.95)
         _idle_result = {
             "triggered": False,
+            "hand_detected": False,
             "roi_center": None,
+            "hand_center": None,
+            "hand_variance": None,
+            "hand_confidence": None,
             "s_visual_raw": 0.0,
             "gesture_result": idle,
             "intent_score": idle.intent_score,
         }
 
-        if self._api_mode == "none":
+        if self._closed or self._api_mode == "none":
             return _idle_result
 
         try:
@@ -189,14 +211,26 @@ class HandTracker:
             return _idle_result
 
         h, w = frame.shape[:2]
+        # 目前只追蹤第一隻手的食指尖作 ROI 中心；這是位置線索，不等於辨識教學語意。
         raw_x, raw_y = self._get_index_tip(landmarks, h, w)
         sx, sy = self.smoother.update(raw_x, raw_y)
 
         # deque 有 maxlen，不需手動 pop
         self.coord_history.append((sx, sy))
 
+        hand_observation = {
+            "hand_detected": True,
+            "hand_center": (int(sx), int(sy)),
+            "hand_variance": (
+                float(np.mean(np.var(np.asarray(self.coord_history), axis=0)))
+                if len(self.coord_history) >= 3
+                else None
+            ),
+        }
+
         if len(self.coord_history) < 3:
-            return {**_idle_result, "gesture_result": _make_result(GestureIntent.IDLE, 0.8),
+            return {**_idle_result, **hand_observation,
+                    "gesture_result": _make_result(GestureIntent.IDLE, 0.8),
                     "intent_score": _make_result(GestureIntent.IDLE, 0.8).intent_score}
 
         gesture_result = self.gesture_classifier.classify(
@@ -207,21 +241,32 @@ class HandTracker:
         )
 
         # 意圖分數 >= 0.7（指引/書寫/強調）才觸發視覺 ROI 分析
+        # 此門檻只決定是否啟動 ROI 視覺評分，不能視為對教師意圖的語意理解。
         triggered = gesture_result.intent_score >= 0.7
 
         return {
             "triggered": triggered,
+            **hand_observation,
             "roi_center": (int(sx), int(sy)) if triggered else None,
             "s_visual_raw": gesture_result.intent_score,
             "gesture_result": gesture_result,
             "intent_score": gesture_result.intent_score,
         }
 
-    def extract_roi(self, frame: np.ndarray, center: tuple[int, int]) -> np.ndarray:
-        """以食指座標為中心裁切 ROI_SIZE × ROI_SIZE 區域。"""
+    def extract_roi_with_origin(
+        self,
+        frame: np.ndarray,
+        center: tuple[int, int],
+    ) -> tuple[np.ndarray, tuple[int, int]]:
+        """Return the hand-centered ROI and its top-left coordinate in the frame."""
         x, y = center
         h, w = frame.shape[:2]
         half = ROI_SIZE // 2
         x1, y1 = max(0, x - half), max(0, y - half)
         x2, y2 = min(w, x + half), min(h, y + half)
-        return frame[y1:y2, x1:x2]
+        return frame[y1:y2, x1:x2], (x1, y1)
+
+    def extract_roi(self, frame: np.ndarray, center: tuple[int, int]) -> np.ndarray:
+        """以食指座標為中心裁切 ROI_SIZE × ROI_SIZE 區域。"""
+        roi, _ = self.extract_roi_with_origin(frame, center)
+        return roi

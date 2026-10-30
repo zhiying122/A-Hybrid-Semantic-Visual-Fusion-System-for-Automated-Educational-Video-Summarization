@@ -76,7 +76,7 @@ def main():
     for key in ("SEMANTIC_SCORER_MODE", "LLM_BACKEND", "WHISPER_MODE", "OPENAI_API_KEY", "GROQ_API_KEY"):
         val = os.environ.get(key)
         if key.endswith("_KEY") and val:
-            val = val[:6] + "..." + f"({len(val)} chars)"
+            val = "已設定（不顯示值）"
         print(f"  {key:<22} = {val or '(未設定)'}")
 
     print("\n" + "=" * 50)
@@ -89,18 +89,7 @@ def main():
 
 
 if __name__ == "__main__":
-    # 載入 config 以觸發工具路徑自動偵測與 .env 讀取
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-    try:
-        from dotenv import load_dotenv  # 若有 python-dotenv
-        load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
-    except Exception:
-        # 手動讀 .env
-        env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
-        if os.path.exists(env_path):
-            for line in open(env_path, encoding="utf-8"):
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    k, v = line.split("=", 1)
-                    os.environ.setdefault(k.strip(), v.strip())
+    import config
+
     main()

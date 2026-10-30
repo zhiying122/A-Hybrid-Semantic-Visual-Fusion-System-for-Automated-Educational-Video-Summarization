@@ -98,14 +98,18 @@ def main():
             seg.get("s_text", 0.0),
             seg.get("s_visual", 0.0),
             ALPHA, BETA,
-            visual_reliability=seg.get("visual_reliability", 1.0),
+            visual_reliability=seg.get("visual_reliability", 0.0),
         )
         # 韻律加權
         prosodic = seg.get("s_prosodic", 0.5)
         boosted = base * (1.0 + 0.15 * (prosodic - 0.5) * 2)
         fusion_scores.append(min(1.0, max(0.0, boosted)))
 
-    selected = semantic_sliding_window(segments, fusion_scores)
+    selected = semantic_sliding_window(
+        segments,
+        fusion_scores,
+        original_duration=total_duration,
+    )
     print(f"      選取 {len(selected)} 個精華片段")
 
     # 效能評估
